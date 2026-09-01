@@ -193,6 +193,56 @@ body {
 .stat-card.written .stat-number { color: #3b82f6; }
 .stat-card.offer .stat-number { color: #10b981; }
 
+/* ==================== Tabs ==================== */
+.tabs-container {
+    margin-bottom: 20px;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tab {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.tab:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.tab.active {
+    background: white;
+    color: #333;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.tab-count {
+    background: rgba(102, 126, 234, 0.15);
+    color: #667eea;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.tab.active .tab-count {
+    background: #667eea;
+    color: white;
+}
+
 /* Controls */
 .controls {
     background: white;
@@ -313,6 +363,29 @@ body {
     color: #374151;
     border-bottom: 2px solid #e5e7eb;
     white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.job-table th:hover {
+    background: #f1f5f9;
+}
+
+.job-table th.sortable::after {
+    content: ' ⇅';
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+
+.job-table th.sort-asc::after {
+    content: ' ↑';
+    color: #667eea;
+}
+
+.job-table th.sort-desc::after {
+    content: ' ↓';
+    color: #667eea;
 }
 
 .job-table td {
@@ -377,6 +450,11 @@ body {
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.category-card:hover {
+    transform: translateY(-3px);
 }
 
 .category-card h3 {
@@ -550,4 +628,6 @@ form {
     .filter-group { width: 100%; }
     .search-box { width: 100%; }
     .auth-box { padding: 30px 20px; }
+    .tabs { justify-content: center; }
+    .tab { padding: 10px 14px; font-size: 0.85rem; }
 }

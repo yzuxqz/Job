@@ -6,6 +6,9 @@ let jobs = [];
 let editingId = null;
 let currentUser = null;
 let authToken = localStorage.getItem('authToken') || null;
+let currentTab = 'all';
+let sortField = 'apply_date';
+let sortOrder = 'desc';
 
 // DOM Elements
 const authContainer = document.getElementById('auth-container');
@@ -14,7 +17,6 @@ const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 const tableBody = document.getElementById('job-table-body');
 const searchInput = document.getElementById('search-input');
-const filterCategory = document.getElementById('filter-category');
 const filterStatus = document.getElementById('filter-status');
 const filterSource = document.getElementById('filter-source');
 const addBtn = document.getElementById('add-btn');
@@ -99,7 +101,6 @@ async function register(username, password) {
         const data = await response.json();
 
         if (response.ok) {
-            // Auto login after register
             await login(username, password);
         } else {
             document.getElementById('register-error').textContent = data.error || '注册失败';
@@ -205,7 +206,6 @@ function setupEventListeners() {
         register(username, password);
     });
 
-    // Enter key for login
     document.getElementById('login-password').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') document.getElementById('login-btn').click();
     });
@@ -241,11 +241,35 @@ function setupEventListeners() {
     });
 
     searchInput.addEventListener('input', debounce(renderTable, 300));
-    filterCategory.addEventListener('change', renderTable);
     filterStatus.addEventListener('change', renderTable);
     filterSource.addEventListener('change', renderTable);
 
     jobForm.addEventListener('submit', handleSubmit);
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentTab = tab.dataset.tab;
+            renderTable();
+        });
+    });
+
+    // Sortable columns
+    document.querySelectorAll('.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            const field = th.dataset.field;
+            if (sortField === field) {
+                sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortField = field;
+                sortOrder = 'desc';
+            }
+            updateSortIndicators();
+            renderTable();
+        });
+    });
 }
 
 // ==================== API Functions ====================
@@ -290,7 +314,14 @@ async function loadStats() {
                 const rejectEl = document.getElementById(`cat-${cat}-reject`);
                 if (countEl) countEl.textContent = catData.count;
                 if (rejectEl) rejectEl.textContent = catData.reject;
+
+                // Tab counts
+                const tabCountEl = document.getElementById(`tab-count-${cat}`);
+                if (tabCountEl) tabCountEl.textContent = catData.count;
             });
+
+            // All count
+            document.getElementById('tab-count-all').textContent = stats.total;
         }
     } catch (error) {
         console.error('加载统计失败:', error);
@@ -361,18 +392,38 @@ async function deleteJob(id) {
 
 function renderTable() {
     const search = searchInput.value.toLowerCase();
-    const category = filterCategory.value;
     const status = filterStatus.value;
     const source = filterSource.value;
 
     let filtered = jobs.filter(job => {
+        // Tab filter
+        if (currentTab !== 'all' && job.category !== currentTab) return false;
+        // Search
         if (search && !job.company.toLowerCase().includes(search) && !job.position.toLowerCase().includes(search)) {
             return false;
         }
-        if (category !== 'all' && job.category !== category) return false;
         if (status !== 'all' && job.status !== status) return false;
         if (source !== 'all' && job.source !== source) return false;
         return true;
+    });
+
+    // Sort
+    filtered.sort((a, b) => {
+        let valA, valB;
+        if (sortField === 'apply_date') {
+            valA = a.apply_date || '0000-00-00';
+            valB = b.apply_date || '0000-00-00';
+        } else if (sortField === 'status') {
+            valA = a.status || '';
+            valB = b.status || '';
+        } else {
+            valA = a[sortField] || '';
+            valB = b[sortField] || '';
+        }
+
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
     });
 
     if (filtered.length === 0) {
@@ -412,6 +463,25 @@ function getCategoryLabel(category) {
     return labels[category] || category;
 }
 
+function updateSortIndicators() {
+    document.querySelectorAll('.sortable').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+        if (th.dataset.field === sortField) {
+            th.classList.add(sortOrder === 'asc' ? 'sort-asc' : 'sort-desc');
+        }
+    });
+}
+
+// ==================== Tab Switching ====================
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    const tabBtn = document.querySelector(`.tab[data-tab="${tab}"]`);
+    if (tabBtn) tabBtn.classList.add('active');
+    currentTab = tab;
+    renderTable();
+}
+
 // ==================== Modal Functions ====================
 
 function openModal(job = null) {
@@ -435,6 +505,10 @@ function openModal(job = null) {
         editingId = null;
         modalTitle.textContent = '新增投递';
         document.getElementById('form-id').value = '';
+        // Pre-fill category based on current tab
+        if (currentTab !== 'all') {
+            document.getElementById('form-category').value = currentTab;
+        }
     }
 }
 
