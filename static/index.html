@@ -139,6 +139,9 @@
                 <button class="tab" data-tab="招聘平台">
                     📱 招聘平台 <span class="tab-count" id="tab-count-招聘平台">0</span>
                 </button>
+                <button class="tab" data-tab="visualization">
+                    📈 可视化 <span class="tab-count" id="tab-count-visualization">📊</span>
+                </button>
             </div>
         </section>
 
@@ -216,6 +219,66 @@
                     <tr><td colspan="10" class="loading">加载中</td></tr>
                 </tbody>
             </table>
+        </section>
+
+        <!-- Visualization Section -->
+        <section class="visualization-container hidden" id="visualization-section">
+            <div class="viz-summary">
+                <div class="viz-stat-card">
+                    <div class="viz-stat-icon">📅</div>
+                    <div class="viz-stat-info">
+                        <span class="viz-stat-number" id="viz-today-count">0</span>
+                        <span class="viz-stat-label">今日投递</span>
+                    </div>
+                </div>
+                <div class="viz-stat-card">
+                    <div class="viz-stat-icon">📊</div>
+                    <div class="viz-stat-info">
+                        <span class="viz-stat-number" id="viz-total-count">0</span>
+                        <span class="viz-stat-label">总投递</span>
+                    </div>
+                </div>
+                <div class="viz-stat-card">
+                    <div class="viz-stat-icon">📈</div>
+                    <div class="viz-stat-info">
+                        <span class="viz-stat-number" id="viz-week-count">0</span>
+                        <span class="viz-stat-label">本周投递</span>
+                    </div>
+                </div>
+                <div class="viz-stat-card">
+                    <div class="viz-stat-icon">🔥</div>
+                    <div class="viz-stat-info">
+                        <span class="viz-stat-number" id="viz-max-day">0</span>
+                        <span class="viz-stat-label">单日最多</span>
+                    </div>
+                </div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>📊 投递分布（按类型）</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="category-chart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>📈 每日投递趋势</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="daily-chart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>🎯 投递状态分布</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="status-chart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>📅 近7日投递</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="weekly-chart"></canvas>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- Category Summary -->
@@ -412,6 +475,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

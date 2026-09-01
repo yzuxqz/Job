@@ -10,6 +10,12 @@ let currentTab = 'all';
 let sortField = 'apply_date';
 let sortOrder = 'desc';
 
+// Chart instances
+let categoryChart = null;
+let dailyChart = null;
+let statusChart = null;
+let weeklyChart = null;
+
 // DOM Elements
 const authContainer = document.getElementById('auth-container');
 const appContainer = document.getElementById('app-container');
@@ -232,6 +238,8 @@ function setupEventListeners() {
     addBtn.addEventListener('click', () => {
         if (currentTab === '招聘平台') {
             openPlatformModal();
+        } else if (currentTab === 'visualization') {
+            // 可视化页签不操作
         } else {
             openModal();
         }
@@ -419,14 +427,36 @@ async function deleteJob(id) {
 // ==================== Render Functions ====================
 
 function updateTableView() {
-    if (currentTab === '招聘平台') {
+    const visualizationSection = document.getElementById('visualization-section');
+    const categorySummary = document.querySelector('.category-summary');
+
+    if (currentTab === 'visualization') {
+        // 显示可视化，隐藏表格
+        mainTable.classList.add('hidden');
+        platformTable.classList.add('hidden');
+        visualizationSection.classList.remove('hidden');
+        filterStatus.parentElement.classList.add('hidden');
+        filterSource.parentElement.classList.add('hidden');
+        addBtn.classList.add('hidden');
+        if (categorySummary) categorySummary.classList.add('hidden');
+        // 初始化图表
+        setTimeout(initVisualization, 100);
+    } else if (currentTab === '招聘平台') {
         mainTable.classList.add('hidden');
         platformTable.classList.remove('hidden');
+        visualizationSection.classList.add('hidden');
         filterStatus.parentElement.classList.add('hidden');
+        filterSource.parentElement.classList.remove('hidden');
+        addBtn.classList.remove('hidden');
+        if (categorySummary) categorySummary.classList.remove('hidden');
     } else {
         mainTable.classList.remove('hidden');
         platformTable.classList.add('hidden');
+        visualizationSection.classList.add('hidden');
         filterStatus.parentElement.classList.remove('hidden');
+        filterSource.parentElement.classList.remove('hidden');
+        addBtn.classList.remove('hidden');
+        if (categorySummary) categorySummary.classList.remove('hidden');
     }
 }
 
@@ -675,6 +705,221 @@ function handlePlatformSubmit(e) {
         createJob(data);
         closePlatformModal();
     }
+}
+
+// ==================== Visualization Functions ====================
+
+function initVisualization() {
+    // 更新统计卡片
+    updateVizStats();
+
+    // 初始化图表
+    initCategoryChart();
+    initDailyChart();
+    initStatusChart();
+    initWeeklyChart();
+}
+
+function updateVizStats() {
+    const today = new Date().toISOString().split('T')[0];
+
+    // 今日投递
+    const todayCount = jobs.filter(j => j.apply_date === today).length;
+    document.getElementById('viz-today-count').textContent = todayCount;
+
+    // 总投递
+    const totalCount = jobs.length;
+    document.getElementById('viz-total-count').textContent = totalCount;
+
+    // 本周投递
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekCount = jobs.filter(j => j.apply_date && j.apply_date >= weekAgo.toISOString().split('T')[0]).length;
+    document.getElementById('viz-week-count').textContent = weekCount;
+
+    // 单日最多
+    const dateCount = {};
+    jobs.forEach(j => {
+        if (j.apply_date) {
+            dateCount[j.apply_date] = (dateCount[j.apply_date] || 0) + 1;
+        }
+    });
+    const maxDay = Math.max(...Object.values(dateCount), 0);
+    document.getElementById('viz-max-day').textContent = maxDay;
+}
+
+function initCategoryChart() {
+    const ctx = document.getElementById('category-chart').getContext('2d');
+
+    // 按类型统计
+    const categories = { '国企': 0, '外企': 0, '私企': 0, '招聘平台': 0 };
+    jobs.forEach(j => {
+        if (j.category in categories) {
+            categories[j.category]++;
+        }
+    });
+
+    if (categoryChart) categoryChart.destroy();
+
+    categoryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['央国企', '外企', '私企', '招聘平台'],
+            datasets: [{
+                data: [categories['国企'], categories['外企'], categories['私企'], categories['招聘平台']],
+                backgroundColor: ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { padding: 15, font: { size: 12 } }
+                }
+            }
+        }
+    });
+}
+
+function initDailyChart() {
+    const ctx = document.getElementById('daily-chart').getContext('2d');
+
+    // 按日期统计投递数量
+    const dateCount = {};
+    jobs.forEach(j => {
+        if (j.apply_date) {
+            dateCount[j.apply_date] = (dateCount[j.apply_date] || 0) + 1;
+        }
+    });
+
+    // 排序日期
+    const sortedDates = Object.keys(dateCount).sort();
+    const counts = sortedDates.map(d => dateCount[d]);
+
+    if (dailyChart) dailyChart.destroy();
+
+    dailyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: sortedDates.map(d => d.substring(5)), // 只显示 MM-DD
+            datasets: [{
+                label: '投递数量',
+                data: counts,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+                pointBackgroundColor: '#667eea'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+}
+
+function initStatusChart() {
+    const ctx = document.getElementById('status-chart').getContext('2d');
+
+    // 按状态统计
+    const statusCount = {};
+    jobs.forEach(j => {
+        statusCount[j.status] = (statusCount[j.status] || 0) + 1;
+    });
+
+    const labels = Object.keys(statusCount);
+    const data = Object.values(statusCount);
+    const colors = [
+        '#f59e0b', '#ef4444', '#ef4444', '#3b82f6',
+        '#8b5cf6', '#6b7280', '#10b981', '#9ca3af', '#d97706'
+    ];
+
+    if (statusChart) statusChart.destroy();
+
+    statusChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { padding: 10, font: { size: 11 } }
+                }
+            }
+        }
+    });
+}
+
+function initWeeklyChart() {
+    const ctx = document.getElementById('weekly-chart').getContext('2d');
+
+    // 近7日统计
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        last7Days.push(d.toISOString().split('T')[0]);
+    }
+
+    const dailyData = last7Days.map(date => {
+        return jobs.filter(j => j.apply_date === date).length;
+    });
+
+    if (weeklyChart) weeklyChart.destroy();
+
+    weeklyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: last7Days.map(d => {
+                const date = new Date(d);
+                return `${date.getMonth() + 1}/${date.getDate()}`;
+            }),
+            datasets: [{
+                label: '投递数',
+                data: dailyData,
+                backgroundColor: dailyData.map((v, i) => i === 6 ? '#667eea' : 'rgba(102, 126, 234, 0.5)'),
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
 }
 
 // ==================== Utility Functions ====================
