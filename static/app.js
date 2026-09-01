@@ -45,6 +45,12 @@ const passwordModal = document.getElementById('password-modal');
 const passwordModalClose = document.getElementById('password-modal-close');
 const passwordForm = document.getElementById('password-form');
 const passwordCancel = document.getElementById('password-cancel');
+const exportBtn = document.getElementById('export-btn');
+const exportModal = document.getElementById('export-modal');
+const exportModalClose = document.getElementById('export-modal-close');
+const exportMarkdownBtn = document.getElementById('export-markdown-btn');
+const exportPdfBtn = document.getElementById('export-pdf-btn');
+const exportStatus = document.getElementById('export-status');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -213,6 +219,18 @@ function setupEventListeners() {
 
     // Logout
     logoutBtn.addEventListener('click', logout);
+
+    // Export
+    exportBtn.addEventListener('click', () => {
+        exportModal.classList.add('active');
+        exportStatus.textContent = '';
+    });
+    exportModalClose.addEventListener('click', () => exportModal.classList.remove('active'));
+    exportModal.addEventListener('click', (e) => {
+        if (e.target === exportModal) exportModal.classList.remove('active');
+    });
+    exportMarkdownBtn.addEventListener('click', exportMarkdown);
+    exportPdfBtn.addEventListener('click', exportPdf);
 
     // Change password
     changePasswordBtn.addEventListener('click', () => {
@@ -996,6 +1014,64 @@ function initWeeklyChart(platformDailyRecords) {
             }
         }
     });
+}
+
+// ==================== Export Functions ====================
+
+async function exportMarkdown() {
+    exportStatus.textContent = '正在生成...';
+    try {
+        const response = await fetch(`${API_BASE}/api/export/markdown`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            // 下载为 .md 文件
+            const blob = new Blob([data.markdown], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `求职进度_${new Date().toISOString().split('T')[0]}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            exportStatus.textContent = '✅ 导出成功！';
+            setTimeout(() => exportModal.classList.remove('active'), 1000);
+        } else {
+            exportStatus.textContent = '❌ 导出失败';
+        }
+    } catch (error) {
+        console.error('导出失败:', error);
+        exportStatus.textContent = '❌ 网络错误';
+    }
+}
+
+async function exportPdf() {
+    exportStatus.textContent = '正在生成...';
+    try {
+        const response = await fetch(`${API_BASE}/api/export/pdf`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `求职进度_${new Date().toISOString().split('T')[0]}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            exportStatus.textContent = '✅ 导出成功！';
+            setTimeout(() => exportModal.classList.remove('active'), 1000);
+        } else {
+            exportStatus.textContent = '❌ 导出失败';
+        }
+    } catch (error) {
+        console.error('导出失败:', error);
+        exportStatus.textContent = '❌ 网络错误';
+    }
 }
 
 // ==================== Utility Functions ====================

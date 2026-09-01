@@ -553,5 +553,146 @@ def delete_platform_daily(record_id):
     return jsonify({'message': '已删除'})
 
 
+# ==================== Export API ====================
+
+@app.route('/api/export/markdown', methods=['GET'])
+@login_required
+def export_markdown():
+    user_id = request.user_id
+    jobs = JobApplication.query.filter_by(user_id=user_id).order_by(JobApplication.category, JobApplication.apply_date).all()
+
+    # 按类别分组
+    categories = {'国企': [], '外企': [], '私企': [], '招聘平台': []}
+    for job in jobs:
+        if job.category in categories:
+            categories[job.category].append(job)
+
+    md_lines = ['# 秋招求职进度追踪导出\n',
+                f'**导出时间**: {datetime.now().strftime("%Y-%m-%d %H:%M")}\n',
+                '---\n']
+
+    category_names = {'国企': '央国企', '外企': '外企', '私企': '私企', '招聘平台': '招聘平台'}
+
+    for cat, cat_name in category_names.items():
+        items = categories[cat]
+        if not items:
+            continue
+
+        md_lines.append(f'\n## {cat_name} ({len(items)}条)\n')
+
+        if cat == '招聘平台':
+            md_lines.append('| 序号 | 平台/公司 | 岗位 | 投递数 | 过初筛 | 笔试中 | 面试中 | 挂几个 | 备注 |')
+            md_lines.append('| --- | --- | --- | --- | --- | --- | --- | --- | --- |')
+            for idx, job in enumerate(items, 1):
+                md_lines.append(f'| {idx} | {job.company} | {job.position or "-"} | {job.apply_date or "-"} | {job.pass_screening or 0} | {job.in_exam or 0} | {job.in_interview or 0} | {job.rejected_count or 0} | {job.notes or "-"} |')
+        else:
+            md_lines.append('| 序号 | 企业 | 岗位 | 投递时间 | 渠道 | 状态 | 笔试时间 | 面试时间 | 备注 |')
+            md_lines.append('| --- | --- | --- | --- | --- | --- | --- | --- | --- |')
+            for idx, job in enumerate(items, 1):
+                md_lines.append(f'| {idx} | {job.company} | {job.position} | {job.apply_date or "-"} | {job.source} | {job.status} | {job.exam_date or "-"} | {job.interview_date or "-"} | {job.notes or "-"} |')
+
+        md_lines.append('')
+
+    return jsonify({'markdown': '\n'.join(md_lines)})
+
+
+@app.route('/api/export/pdf', methods=['GET'])
+@login_required
+def export_pdf():
+    from fpdf import FPDF
+
+    user_id = request.user_id
+    jobs = JobApplication.query.filter_by(user_id=user_id).order_by(JobApplication.category, JobApplication.apply_date).all()
+
+    # 按类别分组
+    categories = {'国企': [], '外企': [], '私企': [], '招聘平台': []}
+    for job in jobs:
+        if job.category in categories:
+            categories[job.category].append(job)
+
+    class PDF(FPDF):
+        def header(self):
+            self.set_font('DejaVu', 'B', 16)
+            self.cell(0, 10, 'Job Application Tracker', 0, 1, 'C')
+            self.set_font('DejaVu', '', 10)
+            self.cell(0, 8, f'Export Time: {datetime.now().strftime("%Y-%m-%d %H:%M")}', 0, 1, 'C')
+            self.ln(5)
+
+        def footer(self):
+            self.set_y(-15)
+            self.set_font('DejaVu', '', 8)
+            self.cell(0, 10, f'Page {self.page_no()}/{{nb}}', 0, 0, 'C')
+
+    pdf = PDF()
+    pdf.alias_nb_pages()
+    pdf.add_font('DejaVu', '', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', uni=True)
+    pdf.add_font('DejaVu', 'B', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', uni=True)
+    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.add_page()
+
+    category_names = {'国企': 'State-owned', '外企': 'Foreign', '私企': 'Private', '招聘平台': 'Platform'}
+
+    for cat, cat_name in category_names.items():
+        items = categories[cat]
+        if not items:
+            continue
+
+        # Category title
+        pdf.set_font('DejaVu', 'B', 13)
+        pdf.cell(0, 10, f'{cat_name} ({len(items)} items)', 0, 1)
+        pdf.ln(2)
+
+        if cat == '招聘平台':
+            # Table header
+            pdf.set_font('DejaVu', 'B', 8)
+            headers = ['#', 'Company', 'Position', 'Date', 'Screen', 'Exam', 'Interview', 'Rejected', 'Notes']
+            col_widths = [10, 35, 30, 22, 18, 18, 18, 18, 40]
+            for i, h in enumerate(headers):
+                pdf.cell(col_widths[i], 7, h, 1, 0, 'C')
+            pdf.ln()
+
+            # Table rows
+            pdf.set_font('DejaVu', '', 7)
+            for idx, job in enumerate(items, 1):
+                row = [str(idx), job.company, job.position or '-', job.apply_date or '-',
+                       str(job.pass_screening or 0), str(job.in_exam or 0),
+                       str(job.in_interview or 0), str(job.rejected_count or 0), job.notes or '-']
+                for i, cell in enumerate(row):
+                    pdf.cell(col_widths[i], 6, str(cell)[:20], 1, 0, 'C')
+                pdf.ln()
+        else:
+            # Table header
+            pdf.set_font('DejaVu', 'B', 8)
+            headers = ['#', 'Company', 'Position', 'Date', 'Source', 'Status', 'Exam', 'Interview', 'Notes']
+            col_widths = [10, 35, 30, 22, 20, 22, 22, 22, 26]
+            for i, h in enumerate(headers):
+                pdf.cell(col_widths[i], 7, h, 1, 0, 'C')
+            pdf.ln()
+
+            # Table rows
+            pdf.set_font('DejaVu', '', 7)
+            for idx, job in enumerate(items, 1):
+                row = [str(idx), job.company, job.position, job.apply_date or '-', job.source,
+                       job.status, job.exam_date or '-', job.interview_date or '-', job.notes or '-']
+                for i, cell in enumerate(row):
+                    pdf.cell(col_widths[i], 6, str(cell)[:18], 1, 0, 'C')
+                pdf.ln()
+
+        pdf.ln(5)
+
+    # Output PDF
+    pdf_output = pdf.output(dest='S').decode('latin-1')
+    from io import BytesIO
+    response = BytesIO(pdf_output.encode('latin-1'))
+    response.seek(0)
+
+    return send_file(
+        response,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f'job_tracker_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+    )
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
