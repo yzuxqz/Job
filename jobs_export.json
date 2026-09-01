@@ -1,5 +1,5 @@
 {
-  "export_time": "2026-09-01T19:03:31.930783",
+  "export_time": "2026-09-01T19:03:36.998421",
   "count": 66,
   "records": [
     {
@@ -203,13 +203,13 @@
       "exam_date": "2026-08-06",
       "interview_date": null,
       "link": "https://www.erongpin.com/army/#/user",
-      "notes": "笔试通过，面试放弃（在北京）",
+      "notes": "面试放弃（在北京）",
       "pass_screening": 0,
       "in_exam": 0,
       "in_interview": 0,
       "rejected_count": 0,
       "created_at": "2026-09-01T19:02:37.037240",
-      "updated_at": "2026-09-01T19:02:37.037241"
+      "updated_at": "2026-09-01T19:03:36.892573"
     },
     {
       "id": 12,
