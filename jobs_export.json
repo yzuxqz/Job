@@ -1,5 +1,5 @@
 {
-  "export_time": "2026-09-01T18:58:28.563179",
+  "export_time": "2026-09-01T18:58:37.885741",
   "count": 66,
   "records": [
     {
@@ -545,13 +545,13 @@
       "exam_date": null,
       "interview_date": null,
       "link": "https://inspur.hcmcloud.cn/recruit#/my_resume",
-      "notes": "在线测评todo",
+      "notes": "在线测评",
       "pass_screening": 0,
       "in_exam": 0,
       "in_interview": 0,
       "rejected_count": 0,
       "created_at": "2026-09-01T18:56:56.021264",
-      "updated_at": "2026-09-01T18:56:56.021266"
+      "updated_at": "2026-09-01T18:58:37.772904"
     },
     {
       "id": 30,
