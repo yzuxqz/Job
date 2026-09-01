@@ -697,6 +697,95 @@ def export_pdf():
 
 # ==================== Sync API ====================
 
+@app.route('/api/restore', methods=['POST'])
+@login_required
+def restore_from_github():
+    """从GitHub仓库恢复数据到数据库"""
+    try:
+        github_token = os.environ.get('GITHUB_TOKEN')
+        github_repo = os.environ.get('GITHUB_REPO', 'yzuxqz/Job')
+        github_branch = os.environ.get('GITHUB_BRANCH', 'main')
+
+        if not github_token:
+            return jsonify({'error': '未配置 GITHUB_TOKEN 环境变量，无法恢复'}), 400
+
+        import urllib.request
+        import urllib.error
+
+        file_path = 'jobs_export.json'
+        api_url = f'https://api.github.com/repos/{github_repo}/contents/{file_path}'
+
+        headers = {
+            'Authorization': f'token {github_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+
+        req = urllib.request.Request(api_url, headers=headers)
+
+        try:
+            with urllib.request.urlopen(req) as response:
+                result = json.loads(response.read().decode())
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return jsonify({'error': 'GitHub 上没有找到备份文件 jobs_export.json，请先同步数据'}), 404
+            raise
+
+        import base64
+        content = base64.b64decode(result['content']).decode('utf-8')
+        data = json.loads(content)
+
+        user_id = request.user_id
+        records = data.get('records', [])
+
+        if not records:
+            return jsonify({'error': '备份文件为空'}), 400
+
+        # 清空当前用户数据
+        JobApplication.query.filter_by(user_id=user_id).delete()
+        db.session.commit()
+
+        # 导入备份数据
+        count = 0
+        for rec in records:
+            job = JobApplication(
+                user_id=user_id,
+                company=rec.get('company', ''),
+                position=rec.get('position', ''),
+                category=rec.get('category', '国企'),
+                source=rec.get('source', '官网'),
+                status=rec.get('status', '流程中'),
+                notes=rec.get('notes', ''),
+                link=rec.get('link', ''),
+                pass_screening=rec.get('pass_screening', 0),
+                in_exam=rec.get('in_exam', 0),
+                in_interview=rec.get('in_interview', 0),
+                rejected_count=rec.get('rejected_count', 0),
+            )
+            # 处理日期
+            if rec.get('apply_date'):
+                job.apply_date = datetime.strptime(rec['apply_date'], '%Y-%m-%d').date()
+            if rec.get('exam_date'):
+                job.exam_date = datetime.strptime(rec['exam_date'], '%Y-%m-%d').date()
+            if rec.get('interview_date'):
+                job.interview_date = datetime.strptime(rec['interview_date'], '%Y-%m-%d').date()
+
+            db.session.add(job)
+            count += 1
+
+        db.session.commit()
+
+        return jsonify({
+            'message': f'恢复成功！已导入 {count} 条记录',
+            'export_time': data.get('export_time', ''),
+            'count': count
+        })
+
+    except urllib.error.HTTPError as e:
+        return jsonify({'error': f'GitHub API 错误: {e.code}'}), 500
+    except Exception as e:
+        return jsonify({'error': f'恢复失败: {str(e)}'}), 500
+
+
 @app.route('/api/sync', methods=['POST'])
 @login_required
 def sync_to_github():

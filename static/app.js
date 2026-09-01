@@ -53,6 +53,7 @@ const exportPdfBtn = document.getElementById('export-pdf-btn');
 const exportStatus = document.getElementById('export-status');
 const syncBtn = document.getElementById('sync-btn');
 const syncStatus = document.getElementById('sync-status');
+const restoreBtn = document.getElementById('restore-btn');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -222,8 +223,9 @@ function setupEventListeners() {
     // Logout
     logoutBtn.addEventListener('click', logout);
 
-    // Sync
+    // Sync & Restore
     syncBtn.addEventListener('click', syncToGithub);
+    restoreBtn.addEventListener('click', restoreFromGithub);
 
     // Export
     exportBtn.addEventListener('click', () => {
@@ -1021,7 +1023,43 @@ function initWeeklyChart(platformDailyRecords) {
     });
 }
 
-// ==================== Sync Functions ====================
+// ==================== Sync & Restore Functions ====================
+
+async function restoreFromGithub() {
+    if (!confirm('确定要从GitHub恢复数据吗？\n\n这会清空当前所有数据，并用GitHub备份文件中的数据替换。\n\n建议先同步当前数据，避免丢失。')) {
+        return;
+    }
+
+    restoreBtn.disabled = true;
+    restoreBtn.textContent = '⏳ 恢复中...';
+
+    try {
+        const response = await fetch(`${API_BASE}/api/restore`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(`✅ ${data.message}\n\n备份时间: ${data.export_time}`);
+            // 刷新数据
+            loadJobs();
+            loadStats();
+        } else {
+            alert(`❌ 恢复失败: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('恢复失败:', error);
+        alert('❌ 网络错误，请稍后重试');
+    } finally {
+        restoreBtn.disabled = false;
+        restoreBtn.textContent = '📥 恢复';
+    }
+}
 
 async function syncToGithub() {
     if (!confirm('确定要将数据库同步到GitHub吗？\n\n这将把当前所有数据推送到仓库的 jobs_export.json 文件中。')) {
