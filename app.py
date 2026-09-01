@@ -6,7 +6,6 @@ from functools import wraps
 import os
 import hashlib
 import secrets
-import uuid
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
@@ -72,11 +71,15 @@ class JobApplication(db.Model):
     exam_date = db.Column(db.Date, nullable=True)
     link = db.Column(db.String(500), nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    # 招聘平台专用字段
+    pass_screening = db.Column(db.Integer, default=0)  # 过初筛数量
+    in_exam = db.Column(db.Integer, default=0)  # 笔试中数量
+    in_interview = db.Column(db.Integer, default=0)  # 面试中数量
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
-        return {
+        result = {
             'id': self.id,
             'company': self.company,
             'position': self.position,
@@ -87,9 +90,13 @@ class JobApplication(db.Model):
             'exam_date': self.exam_date.isoformat() if self.exam_date else None,
             'link': self.link or '',
             'notes': self.notes or '',
+            'pass_screening': self.pass_screening or 0,
+            'in_exam': self.in_exam or 0,
+            'in_interview': self.in_interview or 0,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
+        return result
 
 
 # Create tables
@@ -98,10 +105,6 @@ with app.app_context():
 
 
 # ==================== Auth Helpers ====================
-
-def hash_password(password, salt):
-    return hashlib.sha256((password + salt).encode()).hexdigest()
-
 
 def generate_token():
     return secrets.token_hex(32)
@@ -166,7 +169,6 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({'error': '用户名或密码错误'}), 401
 
-    # Create session
     token = generate_token()
     expires_at = datetime.utcnow() + timedelta(days=30)
     session = Session(user_id=user.id, token=token, expires_at=expires_at)
@@ -215,7 +217,6 @@ def change_password():
     user.set_password(new_password)
     db.session.commit()
 
-    # Invalidate all sessions
     Session.query.filter_by(user_id=user.id).delete()
     db.session.commit()
 
@@ -275,6 +276,9 @@ def create_job():
         exam_date=datetime.strptime(data['exam_date'], '%Y-%m-%d').date() if data.get('exam_date') else None,
         link=data.get('link', ''),
         notes=data.get('notes', ''),
+        pass_screening=data.get('pass_screening', 0),
+        in_exam=data.get('in_exam', 0),
+        in_interview=data.get('in_interview', 0),
     )
 
     db.session.add(job)
@@ -297,6 +301,9 @@ def update_job(job_id):
     job.exam_date = datetime.strptime(data['exam_date'], '%Y-%m-%d').date() if data.get('exam_date') else job.exam_date
     job.link = data.get('link', job.link)
     job.notes = data.get('notes', job.notes)
+    job.pass_screening = data.get('pass_screening', job.pass_screening)
+    job.in_exam = data.get('in_exam', job.in_exam)
+    job.in_interview = data.get('in_interview', job.in_interview)
 
     db.session.commit()
     return jsonify(job.to_dict())
@@ -363,11 +370,14 @@ def batch_import():
             exam_date=datetime.strptime(job_data['exam_date'], '%Y-%m-%d').date() if job_data.get('exam_date') else None,
             link=job_data.get('link', ''),
             notes=job_data.get('notes', ''),
+            pass_screening=job_data.get('pass_screening', 0),
+            in_exam=job_data.get('in_exam', 0),
+            in_interview=job_data.get('in_interview', 0),
         )
         db.session.add(job)
 
     db.session.commit()
-    return jsonify({'message': f'成功导入 {len(jobs)} 条记录'}), 201
+    return jsonify({'message': f'成功导入 {len(jobs)} 记录'}), 201
 
 
 if __name__ == '__main__':

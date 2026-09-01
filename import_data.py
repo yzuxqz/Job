@@ -8,9 +8,9 @@ from datetime import datetime
 # 从表格解析的投递数据
 JOBS_DATA = [
     # ===== 央国企 =====
-    {"company": "中国人民保险", "position": "人保财险-总公司-科技类1-科技运营岗-2027届校招", "category": "国企", "source": "官网", "apply_date": "2026-07-30", "status": "简历挂", "link": "https://picc.zhiye.com/personal/deliveryRecord", "notes": ""},
-    {"company": "中国人民保险", "position": "人保财险-江苏分公司-科技类1-软件开发岗-2027届校招", "category": "国企", "source": "官网", "apply_date": "2026-07-30", "status": "简历挂", "link": "https://picc.zhiye.com/personal/deliveryRecord", "notes": ""},
-    {"company": "山东发展投资控股集团有限公司", "position": "信息系统运维岗", "category": "国企", "source": "官网", "apply_date": "2026-07-31", "status": "笔试挂", "link": "https://sdfz.zhaopin.com/zk/#/pages/application/index", "notes": ""},
+    {"company": "中国人民保险", "position": "人保财险-总公司-科技运营岗-2027届校招", "category": "国企", "source": "官网", "apply_date": "2026-07-30", "status": "简历挂", "link": "https://picc.zhiye.com/personal/deliveryRecord", "notes": ""},
+    {"company": "中国人民保险", "position": "人保财险-江苏分公司-软件开发岗-2027届校招", "category": "国企", "source": "官网", "apply_date": "2026-07-30", "status": "简历挂", "link": "https://picc.zhiye.com/personal/deliveryRecord", "notes": ""},
+    {"company": "山东发展投资控股", "position": "信息系统运维岗", "category": "国企", "source": "官网", "apply_date": "2026-07-31", "status": "笔试挂", "link": "https://sdfz.zhaopin.com/zk/#/pages/application/index", "notes": ""},
     {"company": "中国电子", "position": "中电金信：技术运维工程师", "category": "国企", "source": "官网", "apply_date": "2026-07-31", "status": "流程中", "link": "https://campus.cec.com.cn/collection", "notes": ""},
     {"company": "中国电子", "position": "南京长江电子信息：智能库房管理员", "category": "国企", "source": "官网", "apply_date": "2026-07-31", "status": "简历挂", "link": "https://campus.cec.com.cn/collection", "notes": ""},
     {"company": "中国电子", "position": "南京中电熊猫晶体：生产主管", "category": "国企", "source": "官网", "apply_date": "2026-07-31", "status": "简历挂", "link": "https://campus.cec.com.cn/collection", "notes": ""},
@@ -18,7 +18,7 @@ JOBS_DATA = [
     {"company": "中国物流", "position": "系统管理员", "category": "国企", "source": "官网", "apply_date": "2026-07-31", "status": "流程中", "link": "https://chinalogisticsgroup.hotjob.cn/", "notes": ""},
     {"company": "中国物流", "position": "信息化专员", "category": "国企", "source": "官网", "apply_date": "2026-07-31", "status": "流程中", "link": "https://chinalogisticsgroup.hotjob.cn/", "notes": ""},
     {"company": "中国物流", "position": "储备人才", "category": "国企", "source": "官网", "apply_date": "2026-07-31", "status": "流程中", "link": "https://chinalogisticsgroup.hotjob.cn/", "notes": ""},
-    {"company": "中国融通资源开发集团南京分公司", "position": "接收员(通用物资)", "category": "国企", "source": "官网", "apply_date": "2026-07-31", "status": "面试放弃", "link": "https://www.erongpin.com/army/#/user", "notes": "笔试过，面试放弃，在北京"},
+    {"company": "中国融通资源开发集团", "position": "接收员(通用物资)", "category": "国企", "source": "官网", "apply_date": "2026-07-31", "status": "面试放弃", "link": "https://www.erongpin.com/army/#/user", "notes": "笔试过，面试放弃，在北京"},
     {"company": "招商局船舶工业集团", "position": "软件开发工程师", "category": "国企", "source": "官网", "apply_date": "2026-08-11", "status": "流程中", "link": "https://cmi.zhiye.com/personal/deliveryRecord", "notes": ""},
     {"company": "苏州智慧国资", "position": "软件研发岗", "category": "国企", "source": "官网", "apply_date": "2026-08-15", "status": "简历挂", "link": "https://zhaopin.szgzjg.com/jobseeker/resume", "notes": "需要留服认证在8-30之前"},
     {"company": "国机集团", "position": "5个岗位", "category": "国企", "source": "官网", "apply_date": "2026-08-21", "status": "流程中", "link": "https://zhaopin.sinomach.com.cn/", "notes": ""},
@@ -75,11 +75,11 @@ JOBS_DATA = [
     {"company": "烽火通信", "position": "2个岗位", "category": "私企", "source": "官网", "apply_date": "2026-09-01", "status": "流程中", "link": "https://app.mokahr.com/campus-recruitment/whfhtx/73922", "notes": ""},
     {"company": "恒生科技", "position": "1个岗位", "category": "私企", "source": "官网", "apply_date": "2026-09-01", "status": "流程中", "link": "https://campus.hundsun.com/personal/deliveryRecord", "notes": ""},
 
-    # ===== 招聘平台投递汇总 =====
-    {"company": "国聘网投递", "position": "11个岗位", "category": "招聘平台", "source": "国聘", "apply_date": "2026-08-01", "status": "流程中", "link": "https://www.guopin.com/", "notes": "挂2个，2个不合适，多益网络初筛通过"},
-    {"company": "应届生求职网投递", "position": "32个岗位", "category": "招聘平台", "source": "应届生", "apply_date": "2026-08-01", "status": "流程中", "link": "https://www.yingjiesheng.com/", "notes": "挂4个，3个已读不回，4个不合适"},
-    {"company": "智联招聘投递", "position": "13个单投+16个网申", "category": "招聘平台", "source": "智联", "apply_date": "2026-08-01", "status": "流程中", "link": "https://www.zhaopin.com/", "notes": "挂1个，2个已读不回，1个感兴趣"},
-    {"company": "51Job投递", "position": "6个岗位", "category": "招聘平台", "source": "51job", "apply_date": "2026-08-01", "status": "流程中", "link": "https://www.51job.com/", "notes": "1个已读不回"},
+    # ===== 招聘平台 =====
+    {"company": "国聘网", "position": "11个岗位", "category": "招聘平台", "source": "国聘", "apply_date": "2026-08-01", "status": "流程中", "link": "https://www.guopin.com/", "notes": "挂2个，2个不合适，多益网络初筛通过", "pass_screening": 1},
+    {"company": "应届生求职网", "position": "32个岗位", "category": "招聘平台", "source": "应届生", "apply_date": "2026-08-01", "status": "流程中", "link": "https://www.yingjiesheng.com/", "notes": "挂4个，3个已读不回，4个不合适", "pass_screening": 0},
+    {"company": "智联招聘", "position": "13个单投+16个网申", "category": "招聘平台", "source": "智联", "apply_date": "2026-08-01", "status": "流程中", "link": "https://www.zhaopin.com/", "notes": "挂1个，2个已读不回，1个感兴趣", "pass_screening": 1},
+    {"company": "51Job", "position": "6个岗位", "category": "招聘平台", "source": "51job", "apply_date": "2026-08-01", "status": "流程中", "link": "https://www.51job.com/", "notes": "1个已读不回", "pass_screening": 0},
 ]
 
 
@@ -120,6 +120,9 @@ def import_data():
                 status=job_data['status'],
                 link=job_data.get('link', ''),
                 notes=job_data.get('notes', ''),
+                pass_screening=job_data.get('pass_screening', 0),
+                in_exam=job_data.get('in_exam', 0),
+                in_interview=job_data.get('in_interview', 0),
             )
             db.session.add(job)
             count += 1

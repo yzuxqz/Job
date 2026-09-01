@@ -15,7 +15,10 @@ const authContainer = document.getElementById('auth-container');
 const appContainer = document.getElementById('app-container');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
+const mainTable = document.getElementById('main-table');
+const platformTable = document.getElementById('platform-table');
 const tableBody = document.getElementById('job-table-body');
+const platformTableBody = document.getElementById('platform-table-body');
 const searchInput = document.getElementById('search-input');
 const filterStatus = document.getElementById('filter-status');
 const filterSource = document.getElementById('filter-source');
@@ -25,6 +28,10 @@ const modalClose = document.getElementById('modal-close');
 const modalTitle = document.getElementById('modal-title');
 const jobForm = document.getElementById('job-form');
 const formCancel = document.getElementById('form-cancel');
+const platformModal = document.getElementById('platform-modal');
+const platformModalClose = document.getElementById('platform-modal-close');
+const platformForm = document.getElementById('platform-form');
+const platformFormCancel = document.getElementById('platform-form-cancel');
 const logoutBtn = document.getElementById('logout-btn');
 const userInfo = document.getElementById('user-info');
 const changePasswordBtn = document.getElementById('change-password-btn');
@@ -72,9 +79,7 @@ async function login(username, password) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
-
         const data = await response.json();
-
         if (response.ok) {
             authToken = data.token;
             currentUser = data.user;
@@ -97,9 +102,7 @@ async function register(username, password) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
-
         const data = await response.json();
-
         if (response.ok) {
             await login(username, password);
         } else {
@@ -117,7 +120,6 @@ async function logout() {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
     } catch (e) {}
-
     authToken = null;
     currentUser = null;
     localStorage.removeItem('authToken');
@@ -134,9 +136,7 @@ async function changePassword(oldPassword, newPassword) {
             },
             body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
         });
-
         const data = await response.json();
-
         if (response.ok) {
             alert('密码修改成功，请重新登录');
             authToken = null;
@@ -172,14 +172,12 @@ function setupEventListeners() {
         registerForm.classList.remove('hidden');
         document.getElementById('login-error').textContent = '';
     });
-
     document.getElementById('show-login').addEventListener('click', (e) => {
         e.preventDefault();
         registerForm.classList.add('hidden');
         loginForm.classList.remove('hidden');
         document.getElementById('register-error').textContent = '';
     });
-
     document.getElementById('login-btn').addEventListener('click', () => {
         const username = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value;
@@ -189,12 +187,10 @@ function setupEventListeners() {
         }
         login(username, password);
     });
-
     document.getElementById('register-btn').addEventListener('click', () => {
         const username = document.getElementById('register-username').value.trim();
         const password = document.getElementById('register-password').value;
         const password2 = document.getElementById('register-password2').value;
-
         if (!username || !password) {
             document.getElementById('register-error').textContent = '请填写完整信息';
             return;
@@ -205,7 +201,6 @@ function setupEventListeners() {
         }
         register(username, password);
     });
-
     document.getElementById('login-password').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') document.getElementById('login-btn').click();
     });
@@ -217,6 +212,7 @@ function setupEventListeners() {
     changePasswordBtn.addEventListener('click', () => {
         passwordModal.classList.add('active');
         document.getElementById('password-error').textContent = '';
+        passwordForm.reset();
     });
     passwordModalClose.addEventListener('click', () => passwordModal.classList.remove('active'));
     passwordCancel.addEventListener('click', () => passwordModal.classList.remove('active'));
@@ -233,11 +229,23 @@ function setupEventListeners() {
     });
 
     // Main app
-    addBtn.addEventListener('click', () => openModal());
+    addBtn.addEventListener('click', () => {
+        if (currentTab === '招聘平台') {
+            openPlatformModal();
+        } else {
+            openModal();
+        }
+    });
     modalClose.addEventListener('click', closeModal);
     formCancel.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
+    });
+
+    platformModalClose.addEventListener('click', closePlatformModal);
+    platformFormCancel.addEventListener('click', closePlatformModal);
+    platformModal.addEventListener('click', (e) => {
+        if (e.target === platformModal) closePlatformModal();
     });
 
     searchInput.addEventListener('input', debounce(renderTable, 300));
@@ -245,6 +253,7 @@ function setupEventListeners() {
     filterSource.addEventListener('change', renderTable);
 
     jobForm.addEventListener('submit', handleSubmit);
+    platformForm.addEventListener('submit', handlePlatformSubmit);
 
     // Tabs
     document.querySelectorAll('.tab').forEach(tab => {
@@ -252,6 +261,7 @@ function setupEventListeners() {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             currentTab = tab.dataset.tab;
+            updateTableView();
             renderTable();
         });
     });
@@ -287,7 +297,9 @@ async function loadJobs() {
         }
     } catch (error) {
         console.error('加载数据失败:', error);
-        tableBody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="icon">⚠️</div><p>加载失败，请检查网络连接</p></td></tr>';
+        const emptyRow = '<tr><td colspan="10" class="empty-state"><div class="icon">⚠️</div><p>加载失败，请检查网络连接</p></td></tr>';
+        tableBody.innerHTML = emptyRow;
+        platformTableBody.innerHTML = emptyRow;
     }
 }
 
@@ -298,7 +310,6 @@ async function loadStats() {
         });
         if (response.ok) {
             const stats = await response.json();
-
             document.getElementById('stat-total').textContent = stats.total;
             document.getElementById('stat-pending').textContent = stats.pending;
             document.getElementById('stat-rejected').textContent = stats.rejected;
@@ -306,7 +317,6 @@ async function loadStats() {
             document.getElementById('stat-written').textContent = stats.written;
             document.getElementById('stat-offer').textContent = stats.offer;
 
-            // Category stats
             const categories = ['国企', '外企', '私企', '招聘平台'];
             categories.forEach(cat => {
                 const catData = stats.categories[cat] || { count: 0, reject: 0 };
@@ -314,13 +324,9 @@ async function loadStats() {
                 const rejectEl = document.getElementById(`cat-${cat}-reject`);
                 if (countEl) countEl.textContent = catData.count;
                 if (rejectEl) rejectEl.textContent = catData.reject;
-
-                // Tab counts
                 const tabCountEl = document.getElementById(`tab-count-${cat}`);
                 if (tabCountEl) tabCountEl.textContent = catData.count;
             });
-
-            // All count
             document.getElementById('tab-count-all').textContent = stats.total;
         }
     } catch (error) {
@@ -372,7 +378,6 @@ async function updateJob(id, data) {
 
 async function deleteJob(id) {
     if (!confirm('确定要删除这条记录吗？')) return;
-
     try {
         const response = await fetch(`${API_BASE}/api/jobs/${id}`, {
             method: 'DELETE',
@@ -390,18 +395,35 @@ async function deleteJob(id) {
 
 // ==================== Render Functions ====================
 
+function updateTableView() {
+    if (currentTab === '招聘平台') {
+        mainTable.classList.add('hidden');
+        platformTable.classList.remove('hidden');
+        // Hide status/source filters for platform view
+        filterStatus.parentElement.classList.add('hidden');
+    } else {
+        mainTable.classList.remove('hidden');
+        platformTable.classList.add('hidden');
+        filterStatus.parentElement.classList.remove('hidden');
+    }
+}
+
 function renderTable() {
+    if (currentTab === '招聘平台') {
+        renderPlatformTable();
+    } else {
+        renderMainTable();
+    }
+}
+
+function renderMainTable() {
     const search = searchInput.value.toLowerCase();
     const status = filterStatus.value;
     const source = filterSource.value;
 
     let filtered = jobs.filter(job => {
-        // Tab filter
         if (currentTab !== 'all' && job.category !== currentTab) return false;
-        // Search
-        if (search && !job.company.toLowerCase().includes(search) && !job.position.toLowerCase().includes(search)) {
-            return false;
-        }
+        if (search && !job.company.toLowerCase().includes(search) && !job.position.toLowerCase().includes(search)) return false;
         if (status !== 'all' && job.status !== status) return false;
         if (source !== 'all' && job.source !== source) return false;
         return true;
@@ -409,18 +431,8 @@ function renderTable() {
 
     // Sort
     filtered.sort((a, b) => {
-        let valA, valB;
-        if (sortField === 'apply_date') {
-            valA = a.apply_date || '0000-00-00';
-            valB = b.apply_date || '0000-00-00';
-        } else if (sortField === 'status') {
-            valA = a.status || '';
-            valB = b.status || '';
-        } else {
-            valA = a[sortField] || '';
-            valB = b[sortField] || '';
-        }
-
+        let valA = a[sortField] || '';
+        let valB = b[sortField] || '';
         if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
         if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
         return 0;
@@ -453,13 +465,53 @@ function renderTable() {
     `).join('');
 }
 
+function renderPlatformTable() {
+    const search = searchInput.value.toLowerCase();
+
+    let filtered = jobs.filter(job => {
+        if (job.category !== '招聘平台') return false;
+        if (search && !job.company.toLowerCase().includes(search) && !job.position.toLowerCase().includes(search)) return false;
+        return true;
+    });
+
+    // Sort
+    filtered.sort((a, b) => {
+        let valA = a[sortField] || '';
+        let valB = b[sortField] || '';
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    if (filtered.length === 0) {
+        platformTableBody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="icon">📭</div><p>暂无数据</p></td></tr>';
+        return;
+    }
+
+    platformTableBody.innerHTML = filtered.map((job, index) => `
+        <tr>
+            <td>${index + 1}</td>
+            <td><strong>${escapeHtml(job.company)}</strong></td>
+            <td>${escapeHtml(job.position || '-')}</td>
+            <td>${job.updated_at ? job.updated_at.substring(0, 10) : '-'}</td>
+            <td>${job.apply_date || '-'}</td>
+            <td>${job.pass_screening || 0}</td>
+            <td>${job.in_exam || 0}</td>
+            <td>${job.in_interview || 0}</td>
+            <td>${job.notes ? escapeHtml(job.notes) : '-'}</td>
+            <td>
+                <div class="action-btns">
+                    ${job.link ? `<a href="${escapeHtml(job.link)}" target="_blank" class="btn btn-sm btn-secondary">链接</a>` : ''}
+                    <button class="btn btn-sm btn-secondary" onclick="editPlatformJob(${job.id})">更新</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteJob(${job.id})">删除</button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
 function getCategoryLabel(category) {
-    const labels = {
-        '国企': '央国企',
-        '外企': '外企',
-        '私企': '私企',
-        '招聘平台': '招聘平台'
-    };
+    const labels = { '国企': '央国企', '外企': '外企', '私企': '私企', '招聘平台': '招聘平台' };
     return labels[category] || category;
 }
 
@@ -479,6 +531,7 @@ function switchTab(tab) {
     const tabBtn = document.querySelector(`.tab[data-tab="${tab}"]`);
     if (tabBtn) tabBtn.classList.add('active');
     currentTab = tab;
+    updateTableView();
     renderTable();
 }
 
@@ -505,8 +558,7 @@ function openModal(job = null) {
         editingId = null;
         modalTitle.textContent = '新增投递';
         document.getElementById('form-id').value = '';
-        // Pre-fill category based on current tab
-        if (currentTab !== 'all') {
+        if (currentTab !== 'all' && currentTab !== '招聘平台') {
             document.getElementById('form-category').value = currentTab;
         }
     }
@@ -523,11 +575,44 @@ function editJob(id) {
     if (job) openModal(job);
 }
 
-// ==================== Form Handler ====================
+function openPlatformModal(job = null) {
+    platformModal.classList.add('active');
+    platformForm.reset();
+
+    if (job) {
+        editingId = job.id;
+        document.getElementById('platform-modal-title').textContent = '更新平台记录';
+        document.getElementById('platform-form-id').value = job.id;
+        document.getElementById('platform-form-company').value = job.company;
+        document.getElementById('platform-form-position').value = job.position || '';
+        document.getElementById('platform-form-date').value = job.apply_date || '';
+        document.getElementById('platform-form-pass-screening').value = job.pass_screening || 0;
+        document.getElementById('platform-form-in-exam').value = job.in_exam || 0;
+        document.getElementById('platform-form-in-interview').value = job.in_interview || 0;
+        document.getElementById('platform-form-link').value = job.link || '';
+        document.getElementById('platform-form-notes').value = job.notes || '';
+    } else {
+        editingId = null;
+        document.getElementById('platform-modal-title').textContent = '新增平台记录';
+        document.getElementById('platform-form-id').value = '';
+    }
+}
+
+function closePlatformModal() {
+    platformModal.classList.remove('active');
+    editingId = null;
+    platformForm.reset();
+}
+
+function editPlatformJob(id) {
+    const job = jobs.find(j => j.id === id);
+    if (job) openPlatformModal(job);
+}
+
+// ==================== Form Handlers ====================
 
 function handleSubmit(e) {
     e.preventDefault();
-
     const data = {
         company: document.getElementById('form-company').value,
         position: document.getElementById('form-position').value,
@@ -539,11 +624,34 @@ function handleSubmit(e) {
         link: document.getElementById('form-link').value,
         notes: document.getElementById('form-notes').value,
     };
-
     if (editingId) {
         updateJob(editingId, data);
     } else {
         createJob(data);
+    }
+}
+
+function handlePlatformSubmit(e) {
+    e.preventDefault();
+    const data = {
+        company: document.getElementById('platform-form-company').value,
+        position: document.getElementById('platform-form-position').value,
+        category: '招聘平台',
+        source: '官网',
+        apply_date: document.getElementById('platform-form-date').value || null,
+        status: '流程中',
+        pass_screening: parseInt(document.getElementById('platform-form-pass-screening').value) || 0,
+        in_exam: parseInt(document.getElementById('platform-form-in-exam').value) || 0,
+        in_interview: parseInt(document.getElementById('platform-form-in-interview').value) || 0,
+        link: document.getElementById('platform-form-link').value,
+        notes: document.getElementById('platform-form-notes').value,
+    };
+    if (editingId) {
+        updateJob(editingId, data);
+        closePlatformModal();
+    } else {
+        createJob(data);
+        closePlatformModal();
     }
 }
 

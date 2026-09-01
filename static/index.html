@@ -14,8 +14,6 @@
                 <h1>📊 秋招求职追踪</h1>
                 <p>2027届秋季校园招聘 · 账号登录</p>
             </div>
-
-            <!-- Login Form -->
             <div id="login-form" class="auth-form">
                 <div class="form-group">
                     <label>用户名</label>
@@ -27,12 +25,8 @@
                 </div>
                 <div id="login-error" class="error-msg"></div>
                 <button class="btn btn-primary btn-block" id="login-btn">登 录</button>
-                <p class="auth-switch">
-                    还没有账号？<a href="#" id="show-register">立即注册</a>
-                </p>
+                <p class="auth-switch">还没有账号？<a href="#" id="show-register">立即注册</a></p>
             </div>
-
-            <!-- Register Form -->
             <div id="register-form" class="auth-form hidden">
                 <div class="form-group">
                     <label>用户名</label>
@@ -48,16 +42,13 @@
                 </div>
                 <div id="register-error" class="error-msg"></div>
                 <button class="btn btn-primary btn-block" id="register-btn">注 册</button>
-                <p class="auth-switch">
-                    已有账号？<a href="#" id="show-login">立即登录</a>
-                </p>
+                <p class="auth-switch">已有账号？<a href="#" id="show-login">立即登录</a></p>
             </div>
         </div>
     </div>
 
     <!-- Main App -->
     <div id="app-container" class="app hidden">
-        <!-- Header -->
         <header class="header">
             <div class="header-left">
                 <h1>秋招求职进度追踪</h1>
@@ -169,13 +160,14 @@
 
         <!-- Table -->
         <section class="table-container">
-            <table class="job-table">
+            <!-- 央国企/外企/私企/全部的表格 -->
+            <table class="job-table" id="main-table">
                 <thead>
                     <tr>
                         <th>#</th>
                         <th class="sortable" data-field="company">企业</th>
                         <th>岗位</th>
-                        <th class="col-type">类型</th>
+                        <th>类型</th>
                         <th class="sortable" data-field="apply_date">投递时间</th>
                         <th>渠道</th>
                         <th class="sortable" data-field="status">状态</th>
@@ -185,6 +177,27 @@
                     </tr>
                 </thead>
                 <tbody id="job-table-body">
+                    <tr><td colspan="10" class="loading">加载中</td></tr>
+                </tbody>
+            </table>
+
+            <!-- 招聘平台的表格 -->
+            <table class="job-table hidden" id="platform-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th class="sortable" data-field="company">平台/公司</th>
+                        <th>岗位</th>
+                        <th class="sortable" data-field="apply_date">更新时间</th>
+                        <th>投递数</th>
+                        <th>过初筛</th>
+                        <th>笔试中</th>
+                        <th>面试中</th>
+                        <th>备注</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="platform-table-body">
                     <tr><td colspan="10" class="loading">加载中</td></tr>
                 </tbody>
             </table>
@@ -211,7 +224,7 @@
         </section>
     </div>
 
-    <!-- Add/Edit Modal -->
+    <!-- Add/Edit Modal - 央国企/外企/私企 -->
     <div class="modal" id="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -241,7 +254,6 @@
                             <option value="国企">央国企</option>
                             <option value="外企">外企</option>
                             <option value="私企">私企</option>
-                            <option value="招聘平台">招聘平台</option>
                         </select>
                     </div>
                 </div>
@@ -287,6 +299,67 @@
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="form-cancel">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal - 招聘平台 -->
+    <div class="modal" id="platform-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="platform-modal-title">新增平台记录</h2>
+                <button class="modal-close" id="platform-modal-close">&times;</button>
+            </div>
+            <form id="platform-form">
+                <input type="hidden" id="platform-form-id" />
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>平台/公司名称 *</label>
+                        <input type="text" id="platform-form-company" placeholder="如：国聘网、多益网络" required />
+                    </div>
+                    <div class="form-group">
+                        <label>岗位名称</label>
+                        <input type="text" id="platform-form-position" placeholder="如：11个岗位" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>投递数量</label>
+                        <input type="number" id="platform-form-apply-count" min="0" value="0" />
+                    </div>
+                    <div class="form-group">
+                        <label>更新时间</label>
+                        <input type="date" id="platform-form-date" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>过初筛</label>
+                        <input type="number" id="platform-form-pass-screening" min="0" value="0" />
+                    </div>
+                    <div class="form-group">
+                        <label>笔试中</label>
+                        <input type="number" id="platform-form-in-exam" min="0" value="0" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>面试中</label>
+                        <input type="number" id="platform-form-in-interview" min="0" value="0" />
+                    </div>
+                    <div class="form-group">
+                        <label>投递链接</label>
+                        <input type="url" id="platform-form-link" placeholder="https://..." />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>备注</label>
+                    <textarea id="platform-form-notes" rows="2" placeholder="如：挂2个，3个已读不回..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="platform-form-cancel">取消</button>
                     <button type="submit" class="btn btn-primary">保存</button>
                 </div>
             </form>
