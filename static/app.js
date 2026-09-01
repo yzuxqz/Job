@@ -271,6 +271,7 @@ function setupEventListeners() {
             currentTab = tab.dataset.tab;
             updateTableView();
             renderTable();
+            loadStats(); // 切换页签时更新统计
         });
     });
 
@@ -438,10 +439,11 @@ function updateTableView() {
     const categorySummary = document.querySelector('.category-summary');
 
     if (currentTab === 'visualization') {
-        // 显示可视化，隐藏表格
+        // 显示可视化，隐藏表格和输入框
         mainTable.classList.add('hidden');
         platformTable.classList.add('hidden');
         visualizationSection.classList.remove('hidden');
+        searchInput.parentElement.classList.add('hidden');
         filterStatus.parentElement.classList.add('hidden');
         filterSource.parentElement.classList.add('hidden');
         addBtn.classList.add('hidden');
@@ -452,6 +454,7 @@ function updateTableView() {
         mainTable.classList.add('hidden');
         platformTable.classList.remove('hidden');
         visualizationSection.classList.add('hidden');
+        searchInput.parentElement.classList.remove('hidden');
         filterStatus.parentElement.classList.add('hidden');
         filterSource.parentElement.classList.remove('hidden');
         addBtn.classList.remove('hidden');
@@ -460,6 +463,7 @@ function updateTableView() {
         mainTable.classList.remove('hidden');
         platformTable.classList.add('hidden');
         visualizationSection.classList.add('hidden');
+        searchInput.parentElement.classList.remove('hidden');
         filterStatus.parentElement.classList.remove('hidden');
         filterSource.parentElement.classList.remove('hidden');
         addBtn.classList.remove('hidden');
@@ -718,15 +722,28 @@ function handlePlatformSubmit(e) {
 
 // ==================== Visualization Functions ====================
 
-function initVisualization() {
+async function initVisualization() {
     // 更新统计卡片
     updateVizStats();
 
+    // 获取招聘平台每日记录
+    let platformDailyRecords = [];
+    try {
+        const response = await fetch(`${API_BASE}/api/platform-daily`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.ok) {
+            platformDailyRecords = await response.json();
+        }
+    } catch (e) {
+        console.error('获取平台每日记录失败:', e);
+    }
+
     // 初始化图表
     initCategoryChart();
-    initDailyChart();
+    initDailyChart(platformDailyRecords);
     initStatusChart();
-    initWeeklyChart();
+    initWeeklyChart(platformDailyRecords);
 }
 
 function updateVizStats() {
@@ -760,11 +777,19 @@ function updateVizStats() {
 function initCategoryChart() {
     const ctx = document.getElementById('category-chart').getContext('2d');
 
-    // 按类型统计
+    // 按类型统计，招聘平台算岗位数量
     const categories = { '国企': 0, '外企': 0, '私企': 0, '招聘平台': 0 };
     jobs.forEach(j => {
         if (j.category in categories) {
-            categories[j.category]++;
+            if (j.category === '招聘平台') {
+                // 解析岗位数量
+                const numbers = j.position ? j.position.match(/\d+/g) : null;
+                if (numbers) {
+                    categories[j.category] += parseInt(numbers[0]);
+                }
+            } else {
+                categories[j.category]++;
+            }
         }
     });
 
@@ -794,16 +819,27 @@ function initCategoryChart() {
     });
 }
 
-function initDailyChart() {
+function initDailyChart(platformDailyRecords) {
     const ctx = document.getElementById('daily-chart').getContext('2d');
 
     // 按日期统计投递数量
     const dateCount = {};
+
+    // 非平台记录按日期统计
     jobs.forEach(j => {
-        if (j.apply_date) {
+        if (j.apply_date && j.category !== '招聘平台') {
             dateCount[j.apply_date] = (dateCount[j.apply_date] || 0) + 1;
         }
     });
+
+    // 招聘平台每日新增岗位数
+    if (platformDailyRecords && platformDailyRecords.length > 0) {
+        platformDailyRecords.forEach(r => {
+            if (r.date) {
+                dateCount[r.date] = (dateCount[r.date] || 0) + (r.positions_added || 0);
+            }
+        });
+    }
 
     // 排序日期
     const sortedDates = Object.keys(dateCount).sort();
@@ -853,10 +889,20 @@ function initStatusChart() {
 
     const labels = Object.keys(statusCount);
     const data = Object.values(statusCount);
-    const colors = [
-        '#f59e0b', '#ef4444', '#ef4444', '#3b82f6',
-        '#8b5cf6', '#6b7280', '#10b981', '#9ca3af', '#d97706'
-    ];
+
+    // 每个状态对应不同颜色
+    const statusColors = {
+        '流程中': '#3b82f6',
+        '简历挂': '#ef4444',
+        '笔试挂': '#f97316',
+        '笔试通过': '#8b5cf6',
+        '面试中': '#06b6d4',
+        '面试放弃': '#ec4899',
+        '已拿offer': '#10b981',
+        '已读不回': '#6b7280',
+        '超1月不回复': '#f59e0b'
+    };
+    const colors = labels.map(s => statusColors[s] || '#9ca3af');
 
     if (statusChart) statusChart.destroy();
 
@@ -884,7 +930,7 @@ function initStatusChart() {
     });
 }
 
-function initWeeklyChart() {
+function initWeeklyChart(platformDailyRecords) {
     const ctx = document.getElementById('weekly-chart').getContext('2d');
 
     // 近7日统计
@@ -896,7 +942,22 @@ function initWeeklyChart() {
     }
 
     const dailyData = last7Days.map(date => {
-        return jobs.filter(j => j.apply_date === date).length;
+        let count = 0;
+        // 非平台记录
+        jobs.forEach(j => {
+            if (j.apply_date === date && j.category !== '招聘平台') {
+                count++;
+            }
+        });
+        // 招聘平台每日新增
+        if (platformDailyRecords) {
+            platformDailyRecords.forEach(r => {
+                if (r.date === date) {
+                    count += (r.positions_added || 0);
+                }
+            });
+        }
+        return count;
     });
 
     if (weeklyChart) weeklyChart.destroy();

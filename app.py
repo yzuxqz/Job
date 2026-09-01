@@ -96,6 +96,30 @@ class JobApplication(db.Model):
         }
 
 
+class PlatformDailyRecord(db.Model):
+    """招聘平台每日岗位记录，用于追踪每日新增岗位数量"""
+    __tablename__ = 'platform_daily_records'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    platform = db.Column(db.String(50), nullable=False)  # 国聘/应届生/智联/51job
+    positions_count = db.Column(db.Integer, default=0)  # 当日该平台总岗位数
+    positions_added = db.Column(db.Integer, default=0)  # 当日新增岗位数
+    note = db.Column(db.String(200), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'date': self.date.isoformat() if self.date else None,
+            'platform': self.platform,
+            'positions_count': self.positions_count,
+            'positions_added': self.positions_added,
+            'note': self.note or '',
+        }
+
+
 with app.app_context():
     db.create_all()
 
@@ -372,8 +396,9 @@ def get_stats():
     # 已读不回
     no_reply = platform_no_reply
 
-    # 已挂：简历挂 + 笔试挂
-    rejected = normal_query.filter(JobApplication.status.in_(['简历挂', '笔试挂'])).count()
+    # 已挂：简历挂 + 笔试挂（非平台）+ 平台挂的数量
+    rejected_normal = normal_query.filter(JobApplication.status.in_(['简历挂', '笔试挂'])).count()
+    rejected = rejected_normal + platform_rejected
 
     # 进面：面试中 + 面试放弃
     interview = normal_query.filter(JobApplication.status.in_(['面试中', '面试放弃'])).count()
@@ -384,8 +409,9 @@ def get_stats():
     # Offer
     offer = normal_query.filter_by(status='已拿offer').count()
 
-    # 流程中 = 有投递时间 - 已挂 - 超1月 + 招聘平台岗位数（除了挂的、已读不回的）
-    pending = dated_query.count() - rejected - over_1month + (platform_total_positions - platform_rejected - platform_no_reply)
+    # 流程中 = 总投递 - 已挂 - 超1月不回复 - 已读不回
+    # 验证：流程中 + 已挂 + 超1月不回复 + 已读不回 = 总投递
+    pending = total - rejected - over_1month - no_reply
 
     # Category stats
     categories = ['国企', '外企', '私企', '招聘平台']
@@ -456,6 +482,62 @@ def batch_import():
 
     db.session.commit()
     return jsonify({'message': f'成功导入 {len(jobs)} 记录'}), 201
+
+
+# ==================== Platform Daily Records API ====================
+
+@app.route('/api/platform-daily', methods=['GET'])
+@login_required
+def get_platform_daily():
+    records = PlatformDailyRecord.query.filter_by(user_id=request.user_id).order_by(PlatformDailyRecord.date).all()
+    return jsonify([r.to_dict() for r in records])
+
+
+@app.route('/api/platform-daily', methods=['POST'])
+@login_required
+def add_platform_daily():
+    data = request.get_json()
+    record = PlatformDailyRecord(
+        user_id=request.user_id,
+        date=datetime.strptime(data['date'], '%Y-%m-%d').date(),
+        platform=data.get('platform', ''),
+        positions_count=data.get('positions_count', 0),
+        positions_added=data.get('positions_added', 0),
+        note=data.get('note', ''),
+    )
+    db.session.add(record)
+    db.session.commit()
+    return jsonify(record.to_dict()), 201
+
+
+@app.route('/api/platform-daily/<int:record_id>', methods=['PUT'])
+@login_required
+def update_platform_daily(record_id):
+    record = PlatformDailyRecord.query.filter_by(id=record_id, user_id=request.user_id).first()
+    if not record:
+        return jsonify({'error': '记录不存在'}), 404
+
+    data = request.get_json()
+    if 'date' in data:
+        record.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+    record.platform = data.get('platform', record.platform)
+    record.positions_count = data.get('positions_count', record.positions_count)
+    record.positions_added = data.get('positions_added', record.positions_added)
+    record.note = data.get('note', record.note)
+
+    db.session.commit()
+    return jsonify(record.to_dict())
+
+
+@app.route('/api/platform-daily/<int:record_id>', methods=['DELETE'])
+@login_required
+def delete_platform_daily(record_id):
+    record = PlatformDailyRecord.query.filter_by(id=record_id, user_id=request.user_id).first()
+    if not record:
+        return jsonify({'error': '记录不存在'}), 404
+    db.session.delete(record)
+    db.session.commit()
+    return jsonify({'message': '已删除'})
 
 
 if __name__ == '__main__':
