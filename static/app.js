@@ -398,6 +398,24 @@ async function loadStats(category) {
     }
 }
 
+// 自动同步到GitHub（静默，不阻塞UI）
+async function autoSync() {
+    try {
+        const response = await fetch(`${API_BASE}/api/sync`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        if (response.ok) {
+            console.log('自动同步成功');
+        }
+    } catch (error) {
+        console.error('自动同步失败:', error);
+    }
+}
+
 async function createJob(data) {
     try {
         const response = await fetch(`${API_BASE}/api/jobs`, {
@@ -412,6 +430,7 @@ async function createJob(data) {
             loadJobs();
             loadStats();
             closeModal();
+            autoSync(); // 自动同步
         }
     } catch (error) {
         console.error('创建失败:', error);
@@ -433,6 +452,7 @@ async function updateJob(id, data) {
             loadJobs();
             loadStats();
             closeModal();
+            autoSync(); // 自动同步
         }
     } catch (error) {
         console.error('更新失败:', error);
@@ -450,6 +470,7 @@ async function deleteJob(id) {
         if (response.ok) {
             loadJobs();
             loadStats();
+            autoSync(); // 自动同步
         }
     } catch (error) {
         console.error('删除失败:', error);
