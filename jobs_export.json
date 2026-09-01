@@ -1,5 +1,5 @@
 {
-  "export_time": "2026-09-01T19:03:17.338946",
+  "export_time": "2026-09-01T19:03:27.654339",
   "count": 66,
   "records": [
     {
@@ -51,13 +51,13 @@
       "exam_date": "2026-08-05",
       "interview_date": null,
       "link": "https://sdfz.zhaopin.com/zk/#/pages/application/index",
-      "notes": "参加了笔试，未通过",
+      "notes": "",
       "pass_screening": 0,
       "in_exam": 0,
       "in_interview": 0,
       "rejected_count": 0,
       "created_at": "2026-09-01T19:02:37.037227",
-      "updated_at": "2026-09-01T19:02:37.037228"
+      "updated_at": "2026-09-01T19:03:27.062675"
     },
     {
       "id": 4,
