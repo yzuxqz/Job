@@ -10,10 +10,8 @@ import secrets
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
-# Secret key for session tokens
 app.config['SECRET_KEY'] = secrets.token_hex(32)
 
-# Database configuration
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(basedir, "jobs.db")}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -72,14 +70,14 @@ class JobApplication(db.Model):
     link = db.Column(db.String(500), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     # 招聘平台专用字段
-    pass_screening = db.Column(db.Integer, default=0)  # 过初筛数量
-    in_exam = db.Column(db.Integer, default=0)  # 笔试中数量
-    in_interview = db.Column(db.Integer, default=0)  # 面试中数量
+    pass_screening = db.Column(db.Integer, default=0)
+    in_exam = db.Column(db.Integer, default=0)
+    in_interview = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
-        result = {
+        return {
             'id': self.id,
             'company': self.company,
             'position': self.position,
@@ -96,10 +94,8 @@ class JobApplication(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
-        return result
 
 
-# Create tables
 with app.app_context():
     db.create_all()
 
@@ -141,13 +137,10 @@ def register():
 
     if not username or not password:
         return jsonify({'error': '用户名和密码不能为空'}), 400
-
     if len(username) < 3:
         return jsonify({'error': '用户名至少3个字符'}), 400
-
     if len(password) < 6:
         return jsonify({'error': '密码至少6个字符'}), 400
-
     if User.query.filter_by(username=username).first():
         return jsonify({'error': '用户名已存在'}), 409
 
@@ -216,7 +209,6 @@ def change_password():
 
     user.set_password(new_password)
     db.session.commit()
-
     Session.query.filter_by(user_id=user.id).delete()
     db.session.commit()
 
@@ -324,22 +316,53 @@ def get_stats():
     user_id = request.user_id
     base_query = JobApplication.query.filter_by(user_id=user_id)
 
-    total = base_query.count()
-    pending = base_query.filter(JobApplication.status.in_(['流程中', '笔试通过', '面试中'])).count()
-    rejected = base_query.filter(JobApplication.status.in_(['简历挂', '笔试挂'])).count()
-    interview = base_query.filter_by(status='面试中').count()
-    written = base_query.filter(JobApplication.status.in_(['笔试通过', '笔试挂'])).count()
-    offer = base_query.filter_by(status='已拿offer').count()
+    # 计算招聘平台总岗位数
+    platform_query = base_query.filter_by(category='招聘平台')
+    platform_total_positions = 0
+    for p in platform_query.all():
+        # 从岗位字段提取数字
+        pos = p.position
+        if pos:
+            import re
+            numbers = re.findall(r'\d+', pos)
+            if numbers:
+                platform_total_positions += int(numbers[0])
+
+    # 非招聘平台记录数
+    normal_count = base_query.filter(JobApplication.category != '招聘平台').count()
+
+    # 总投递 = 正常记录 + 招聘平台岗位数
+    total = normal_count + platform_total_positions
+
+    # 状态统计（仅非招聘平台）
+    normal_query = base_query.filter(JobApplication.category != '招聘平台')
+    pending = normal_query.filter(JobApplication.status.in_(['流程中', '笔试通过', '面试中'])).count()
+    rejected = normal_query.filter(JobApplication.status.in_(['简历挂', '笔试挂'])).count()
+    interview = normal_query.filter_by(status='面试中').count()
+    written = normal_query.filter(JobApplication.status.in_(['笔试通过', '笔试挂'])).count()
+    offer = normal_query.filter_by(status='已拿offer').count()
+
+    # 超1月不回复和已读不回
+    over_1month = normal_query.filter_by(status='超1月不回复').count()
+    no_reply = normal_query.filter_by(status='已读不回').count()
+    virtual_rejected = over_1month + no_reply
 
     # Category stats
     categories = ['国企', '外企', '私企', '招聘平台']
     cat_stats = {}
     for cat in categories:
         cat_query = base_query.filter_by(category=cat)
-        cat_stats[cat] = {
-            'count': cat_query.count(),
-            'reject': cat_query.filter(JobApplication.status.in_(['简历挂', '笔试挂'])).count()
-        }
+        if cat == '招聘平台':
+            cat_stats[cat] = {
+                'count': cat_query.count(),
+                'positions': platform_total_positions,
+                'reject': 0
+            }
+        else:
+            cat_stats[cat] = {
+                'count': cat_query.count(),
+                'reject': cat_query.filter(JobApplication.status.in_(['简历挂', '笔试挂'])).count()
+            }
 
     return jsonify({
         'total': total,
@@ -348,6 +371,9 @@ def get_stats():
         'interview': interview,
         'written': written,
         'offer': offer,
+        'over_1month': over_1month,
+        'no_reply': no_reply,
+        'virtual_rejected': virtual_rejected,
         'categories': cat_stats
     })
 

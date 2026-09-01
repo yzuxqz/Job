@@ -150,7 +150,7 @@ body {
 /* Stats Dashboard */
 .stats-dashboard {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 12px;
     margin-bottom: 20px;
 }
@@ -192,6 +192,13 @@ body {
 .stat-card.interview .stat-number { color: #8b5cf6; }
 .stat-card.written .stat-number { color: #3b82f6; }
 .stat-card.offer .stat-number { color: #10b981; }
+
+/* Virtual rejected - gray text */
+.virtual-rejected {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin-top: 4px;
+}
 
 /* ==================== Tabs ==================== */
 .tabs-container {
@@ -392,6 +399,16 @@ body {
     padding: 12px;
     border-bottom: 1px solid #f3f4f6;
     vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.job-table td.notes-cell {
+    max-width: 150px;
+    color: #6b7280;
+    font-size: 0.9rem;
 }
 
 .job-table tr:hover {
@@ -416,6 +433,7 @@ body {
 .status-面试放弃 { background: #f3f4f6; color: #6b7280; }
 .status-已拿offer { background: #d1fae5; color: #065f46; }
 .status-已读不回 { background: #f3f4f6; color: #9ca3af; }
+.status-超1月不回复 { background: #fef3c7; color: #92400e; }
 
 /* Category badges */
 .category-badge {
@@ -424,6 +442,7 @@ body {
     border-radius: 4px;
     font-size: 0.75rem;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .category-国企 { background: #dbeafe; color: #1e40af; }
@@ -466,6 +485,12 @@ body {
 .category-card p {
     color: #6b7280;
     font-size: 0.9rem;
+}
+
+.category-card .platform-count {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin-top: 4px;
 }
 
 /* Modal */

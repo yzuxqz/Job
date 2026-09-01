@@ -4,6 +4,7 @@
 """
 from app import app, db, JobApplication, User
 from datetime import datetime
+import re
 
 # 从表格解析的投递数据
 JOBS_DATA = [
@@ -76,9 +77,10 @@ JOBS_DATA = [
     {"company": "恒生科技", "position": "1个岗位", "category": "私企", "source": "官网", "apply_date": "2026-09-01", "status": "流程中", "link": "https://campus.hundsun.com/personal/deliveryRecord", "notes": ""},
 
     # ===== 招聘平台 =====
+    # 智联只算单投13个，不算网申16个
     {"company": "国聘网", "position": "11个岗位", "category": "招聘平台", "source": "国聘", "apply_date": "2026-08-01", "status": "流程中", "link": "https://www.guopin.com/", "notes": "挂2个，2个不合适，多益网络初筛通过", "pass_screening": 1},
     {"company": "应届生求职网", "position": "32个岗位", "category": "招聘平台", "source": "应届生", "apply_date": "2026-08-01", "status": "流程中", "link": "https://www.yingjiesheng.com/", "notes": "挂4个，3个已读不回，4个不合适", "pass_screening": 0},
-    {"company": "智联招聘", "position": "13个单投+16个网申", "category": "招聘平台", "source": "智联", "apply_date": "2026-08-01", "status": "流程中", "link": "https://www.zhaopin.com/", "notes": "挂1个，2个已读不回，1个感兴趣", "pass_screening": 1},
+    {"company": "智联招聘", "position": "13个岗位(单投)", "category": "招聘平台", "source": "智联", "apply_date": "2026-08-01", "status": "流程中", "link": "https://www.zhaopin.com/", "notes": "挂1个，2个已读不回，1个感兴趣", "pass_screening": 1},
     {"company": "51Job", "position": "6个岗位", "category": "招聘平台", "source": "51job", "apply_date": "2026-08-01", "status": "流程中", "link": "https://www.51job.com/", "notes": "1个已读不回", "pass_screening": 0},
 ]
 

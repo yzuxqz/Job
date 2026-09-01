@@ -82,6 +82,21 @@
                 <div class="stat-info">
                     <span class="stat-number" id="stat-rejected">0</span>
                     <span class="stat-label">已挂</span>
+                    <div class="virtual-rejected">虚拟已挂: <span id="stat-virtual-rejected">0</span></div>
+                </div>
+            </div>
+            <div class="stat-card" style="background: #fef3c7;">
+                <div class="stat-icon">⏰</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="stat-over-1month" style="color: #92400e;">0</span>
+                    <span class="stat-label">超1月不回复</span>
+                </div>
+            </div>
+            <div class="stat-card" style="background: #f3f4f6;">
+                <div class="stat-icon">📭</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="stat-no-reply" style="color: #6b7280;">0</span>
+                    <span class="stat-label">已读不回</span>
                 </div>
             </div>
             <div class="stat-card interview">
@@ -144,6 +159,7 @@
                     <option value="面试放弃">面试放弃</option>
                     <option value="已拿offer">已拿offer</option>
                     <option value="已读不回">已读不回</option>
+                    <option value="超1月不回复">超1月不回复</option>
                 </select>
                 <select id="filter-source">
                     <option value="all">全部渠道</option>
@@ -219,7 +235,8 @@
             </div>
             <div class="category-card" onclick="switchTab('招聘平台')" style="cursor:pointer">
                 <h3>📱 招聘平台</h3>
-                <p><span id="cat-招聘平台-count">0</span> 家 · 挂 <span id="cat-招聘平台-reject">0</span> 个</p>
+                <p><span id="cat-招聘平台-positions">0</span> 个岗位</p>
+                <p class="platform-count"><span id="cat-招聘平台-count">0</span> 个平台</p>
             </div>
         </section>
     </div>
@@ -280,6 +297,7 @@
                             <option value="面试放弃">面试放弃</option>
                             <option value="已拿offer">已拿offer</option>
                             <option value="已读不回">已读不回</option>
+                            <option value="超1月不回复">超1月不回复</option>
                         </select>
                     </div>
                 </div>

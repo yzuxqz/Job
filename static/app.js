@@ -310,6 +310,8 @@ async function loadStats() {
         });
         if (response.ok) {
             const stats = await response.json();
+
+            // Main stats
             document.getElementById('stat-total').textContent = stats.total;
             document.getElementById('stat-pending').textContent = stats.pending;
             document.getElementById('stat-rejected').textContent = stats.rejected;
@@ -317,6 +319,14 @@ async function loadStats() {
             document.getElementById('stat-written').textContent = stats.written;
             document.getElementById('stat-offer').textContent = stats.offer;
 
+            // Virtual rejected
+            document.getElementById('stat-virtual-rejected').textContent = stats.virtual_rejected;
+
+            // Over 1 month and no reply
+            document.getElementById('stat-over-1month').textContent = stats.over_1month;
+            document.getElementById('stat-no-reply').textContent = stats.no_reply;
+
+            // Category stats
             const categories = ['国企', '外企', '私企', '招聘平台'];
             categories.forEach(cat => {
                 const catData = stats.categories[cat] || { count: 0, reject: 0 };
@@ -324,9 +334,25 @@ async function loadStats() {
                 const rejectEl = document.getElementById(`cat-${cat}-reject`);
                 if (countEl) countEl.textContent = catData.count;
                 if (rejectEl) rejectEl.textContent = catData.reject;
+
+                // Tab counts
                 const tabCountEl = document.getElementById(`tab-count-${cat}`);
-                if (tabCountEl) tabCountEl.textContent = catData.count;
+                if (tabCountEl) {
+                    if (cat === '招聘平台') {
+                        tabCountEl.textContent = catData.positions || 0;
+                    } else {
+                        tabCountEl.textContent = catData.count;
+                    }
+                }
+
+                // Platform positions display
+                if (cat === '招聘平台') {
+                    const posEl = document.getElementById(`cat-${cat}-positions`);
+                    if (posEl) posEl.textContent = catData.positions || 0;
+                }
             });
+
+            // All count = total
             document.getElementById('tab-count-all').textContent = stats.total;
         }
     } catch (error) {
@@ -399,7 +425,6 @@ function updateTableView() {
     if (currentTab === '招聘平台') {
         mainTable.classList.add('hidden');
         platformTable.classList.remove('hidden');
-        // Hide status/source filters for platform view
         filterStatus.parentElement.classList.add('hidden');
     } else {
         mainTable.classList.remove('hidden');
@@ -453,7 +478,7 @@ function renderMainTable() {
             <td>${job.source}</td>
             <td><span class="status-badge status-${job.status}">${job.status}</span></td>
             <td>${job.exam_date || '-'}</td>
-            <td>${job.notes ? escapeHtml(job.notes) : '-'}</td>
+            <td class="notes-cell">${job.notes ? escapeHtml(job.notes) : '-'}</td>
             <td>
                 <div class="action-btns">
                     ${job.link ? `<a href="${escapeHtml(job.link)}" target="_blank" class="btn btn-sm btn-secondary">链接</a>` : ''}
@@ -498,7 +523,7 @@ function renderPlatformTable() {
             <td>${job.pass_screening || 0}</td>
             <td>${job.in_exam || 0}</td>
             <td>${job.in_interview || 0}</td>
-            <td>${job.notes ? escapeHtml(job.notes) : '-'}</td>
+            <td class="notes-cell">${job.notes ? escapeHtml(job.notes) : '-'}</td>
             <td>
                 <div class="action-btns">
                     ${job.link ? `<a href="${escapeHtml(job.link)}" target="_blank" class="btn btn-sm btn-secondary">链接</a>` : ''}
