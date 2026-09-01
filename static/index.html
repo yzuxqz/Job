@@ -98,18 +98,18 @@
                     <span class="stat-label">已读不回</span>
                 </div>
             </div>
-            <div class="stat-card interview">
-                <div class="stat-icon">🎯</div>
-                <div class="stat-info">
-                    <span class="stat-number" id="stat-interview">0</span>
-                    <span class="stat-label">进面</span>
-                </div>
-            </div>
             <div class="stat-card written">
                 <div class="stat-icon">📝</div>
                 <div class="stat-info">
                     <span class="stat-number" id="stat-written">0</span>
                     <span class="stat-label">笔试</span>
+                </div>
+            </div>
+            <div class="stat-card interview">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="stat-interview">0</span>
+                    <span class="stat-label">进面</span>
                 </div>
             </div>
             <div class="stat-card offer">
@@ -437,6 +437,12 @@
                         <label>面试中</label>
                         <input type="number" id="platform-form-in-interview" min="0" value="0" />
                     </div>
+                    <div class="form-group">
+                        <label>挂几个</label>
+                        <input type="number" id="platform-form-rejected" min="0" value="0" />
+                    </div>
+                </div>
+                <div class="form-row">
                     <div class="form-group">
                         <label>投递链接</label>
                         <input type="url" id="platform-form-link" placeholder="https://..." />

@@ -74,17 +74,11 @@ class JobApplication(db.Model):
     pass_screening = db.Column(db.Integer, default=0)
     in_exam = db.Column(db.Integer, default=0)
     in_interview = db.Column(db.Integer, default=0)
+    rejected_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
-        # 从备注中解析挂数量
-        rejected_count = 0
-        if self.notes:
-            import re
-            match = re.search(r'挂\s*(\d+)\s*个', self.notes)
-            if match:
-                rejected_count = int(match.group(1))
         return {
             'id': self.id,
             'company': self.company,
@@ -100,7 +94,7 @@ class JobApplication(db.Model):
             'pass_screening': self.pass_screening or 0,
             'in_exam': self.in_exam or 0,
             'in_interview': self.in_interview or 0,
-            'rejected_count': rejected_count,
+            'rejected_count': self.rejected_count or 0,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -306,6 +300,7 @@ def create_job():
         pass_screening=data.get('pass_screening', 0),
         in_exam=data.get('in_exam', 0),
         in_interview=data.get('in_interview', 0),
+        rejected_count=data.get('rejected_count', 0),
     )
 
     db.session.add(job)
@@ -332,6 +327,7 @@ def update_job(job_id):
     job.pass_screening = data.get('pass_screening', job.pass_screening)
     job.in_exam = data.get('in_exam', job.in_exam)
     job.in_interview = data.get('in_interview', job.in_interview)
+    job.rejected_count = data.get('rejected_count', job.rejected_count)
 
     db.session.commit()
     return jsonify(job.to_dict())
@@ -384,10 +380,8 @@ def get_stats():
             match = re.search(r'(\d+)\s*个\s*已读\s*不回', p.notes)
             if match:
                 platform_no_reply += int(match.group(1))
-            # 解析挂的数量
-            match_reject = re.search(r'挂\s*(\d+)\s*个', p.notes)
-            if match_reject:
-                platform_rejected += int(match_reject.group(1))
+        # 挂的数量从独立字段读取
+        platform_rejected += p.rejected_count or 0
 
     # 非招聘平台记录
     normal_query = query.filter(JobApplication.category != '招聘平台')
@@ -447,10 +441,7 @@ def get_stats():
                     numbers = re.findall(r'\d+', pos)
                     if numbers:
                         cat_positions += int(numbers[0])
-                if p.notes:
-                    match_reject = re.search(r'挂\s*(\d+)\s*个', p.notes)
-                    if match_reject:
-                        cat_rejected += int(match_reject.group(1))
+                cat_rejected += p.rejected_count or 0
             cat_stats[cat] = {
                 'count': cat_query.count(),
                 'positions': cat_positions,

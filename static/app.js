@@ -657,6 +657,7 @@ function openPlatformModal(job = null) {
         document.getElementById('platform-form-pass-screening').value = job.pass_screening || 0;
         document.getElementById('platform-form-in-exam').value = job.in_exam || 0;
         document.getElementById('platform-form-in-interview').value = job.in_interview || 0;
+        document.getElementById('platform-form-rejected').value = job.rejected_count || 0;
         document.getElementById('platform-form-link').value = job.link || '';
         document.getElementById('platform-form-notes').value = job.notes || '';
     } else {
@@ -712,6 +713,7 @@ function handlePlatformSubmit(e) {
         pass_screening: parseInt(document.getElementById('platform-form-pass-screening').value) || 0,
         in_exam: parseInt(document.getElementById('platform-form-in-exam').value) || 0,
         in_interview: parseInt(document.getElementById('platform-form-in-interview').value) || 0,
+        rejected_count: parseInt(document.getElementById('platform-form-rejected').value) || 0,
         link: document.getElementById('platform-form-link').value,
         notes: document.getElementById('platform-form-notes').value,
     };

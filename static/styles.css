@@ -701,13 +701,71 @@ form {
 
 /* Responsive */
 @media (max-width: 768px) {
-    .header { flex-direction: column; text-align: center; }
-    .header h1 { font-size: 1.5rem; }
-    .form-row { grid-template-columns: 1fr; }
-    .controls { flex-direction: column; }
+    .app { padding: 10px; }
+    .header { flex-direction: column; text-align: center; padding: 15px 0; }
+    .header-left h1 { font-size: 1.4rem; }
+    .header-right { gap: 8px; }
+    .user-info { display: none; }
+
+    /* Stats - 2 columns on mobile */
+    .stats-dashboard {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    .stat-card { padding: 12px 10px; gap: 8px; }
+    .stat-icon { font-size: 1.3rem; }
+    .stat-number { font-size: 1.2rem; }
+    .stat-label { font-size: 0.7rem; }
+
+    /* Tabs scrollable */
+    .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 6px; padding-bottom: 5px; }
+    .tab { padding: 8px 12px; font-size: 0.8rem; white-space: nowrap; flex-shrink: 0; }
+
+    /* Controls */
+    .controls { flex-direction: column; padding: 12px 15px; gap: 10px; }
     .filter-group { width: 100%; }
-    .search-box { width: 100%; }
+    .filter-group select { flex: 1; min-width: 0; padding: 8px 10px; font-size: 0.85rem; }
+    .search-box { width: 100%; min-width: 0; }
+    #add-btn { width: 100%; }
+
+    /* Table */
+    .table-container { border-radius: 8px; }
+    .job-table { min-width: 700px; }
+    .job-table th, .job-table td { padding: 10px 8px; font-size: 0.85rem; }
+    .notes-cell { max-width: 100px; }
+
+    /* Category summary */
+    .category-summary { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .category-card { padding: 15px; }
+    .category-card h3 { font-size: 0.9rem; }
+
+    /* Modal */
+    .modal-content { max-width: 100%; max-height: 95vh; border-radius: 12px; }
+    .modal-header { padding: 15px 20px; }
+    .modal-header h2 { font-size: 1.1rem; }
+    form { padding: 20px; }
+    .form-row { grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
+
+    /* Auth */
     .auth-box { padding: 30px 20px; }
-    .tabs { justify-content: center; }
-    .tab { padding: 10px 14px; font-size: 0.85rem; }
+    .auth-header h1 { font-size: 1.5rem; }
+
+    /* Visualization */
+    .viz-summary { grid-template-columns: repeat(2, 1fr); }
+    .charts-grid { grid-template-columns: 1fr; }
+    .chart-wrapper { height: 200px; }
+}
+
+@media (max-width: 480px) {
+    .stats-dashboard { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .stat-card { padding: 10px 8px; flex-direction: column; text-align: center; gap: 4px; }
+    .stat-icon { font-size: 1.2rem; }
+    .stat-number { font-size: 1.1rem; }
+    .stat-label { font-size: 0.65rem; }
+
+    .category-summary { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .category-card { padding: 12px; }
+
+    .action-btns { flex-direction: column; gap: 4px; }
+    .action-btns .btn-sm { padding: 4px 8px; font-size: 0.75rem; }
 }
