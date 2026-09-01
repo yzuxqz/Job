@@ -193,13 +193,6 @@ body {
 .stat-card.written .stat-number { color: #3b82f6; }
 .stat-card.offer .stat-number { color: #10b981; }
 
-/* Virtual rejected - gray text */
-.virtual-rejected {
-    font-size: 0.8rem;
-    color: #9ca3af;
-    margin-top: 4px;
-}
-
 /* ==================== Tabs ==================== */
 .tabs-container {
     margin-bottom: 20px;

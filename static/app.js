@@ -319,9 +319,6 @@ async function loadStats() {
             document.getElementById('stat-written').textContent = stats.written;
             document.getElementById('stat-offer').textContent = stats.offer;
 
-            // Virtual rejected
-            document.getElementById('stat-virtual-rejected').textContent = stats.virtual_rejected;
-
             // Over 1 month and no reply
             document.getElementById('stat-over-1month').textContent = stats.over_1month;
             document.getElementById('stat-no-reply').textContent = stats.no_reply;

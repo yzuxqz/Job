@@ -361,9 +361,6 @@ def get_stats():
     # 已读不回：从招聘平台备注中提取
     no_reply = platform_no_reply
 
-    # 虚拟已挂 = 超1月不回复 + 已读不回
-    virtual_rejected = over_1month + no_reply
-
     # 已挂：简历挂 + 笔试挂
     rejected = normal_query.filter(JobApplication.status.in_(['简历挂', '笔试挂'])).count()
 
@@ -405,7 +402,6 @@ def get_stats():
         'offer': offer,
         'over_1month': over_1month,
         'no_reply': no_reply,
-        'virtual_rejected': virtual_rejected,
         'categories': cat_stats
     })
 
