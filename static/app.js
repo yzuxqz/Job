@@ -471,14 +471,14 @@ function renderMainTable() {
     tableBody.innerHTML = filtered.map((job, index) => `
         <tr>
             <td>${index + 1}</td>
-            <td><strong>${escapeHtml(job.company)}</strong></td>
-            <td>${escapeHtml(job.position)}</td>
+            <td title="${escapeHtml(job.company)}"><strong>${escapeHtml(job.company)}</strong></td>
+            <td title="${escapeHtml(job.position)}">${escapeHtml(job.position)}</td>
             <td><span class="category-badge category-${job.category}">${getCategoryLabel(job.category)}</span></td>
             <td>${job.apply_date || '-'}</td>
             <td>${job.source}</td>
             <td><span class="status-badge status-${job.status}">${job.status}</span></td>
             <td>${job.exam_date || '-'}</td>
-            <td class="notes-cell">${job.notes ? escapeHtml(job.notes) : '-'}</td>
+            <td class="notes-cell" title="${escapeHtml(job.notes || '')}">${job.notes ? escapeHtml(job.notes) : '-'}</td>
             <td>
                 <div class="action-btns">
                     ${job.link ? `<a href="${escapeHtml(job.link)}" target="_blank" class="btn btn-sm btn-secondary">链接</a>` : ''}
@@ -516,14 +516,14 @@ function renderPlatformTable() {
     platformTableBody.innerHTML = filtered.map((job, index) => `
         <tr>
             <td>${index + 1}</td>
-            <td><strong>${escapeHtml(job.company)}</strong></td>
-            <td>${escapeHtml(job.position || '-')}</td>
+            <td title="${escapeHtml(job.company)}"><strong>${escapeHtml(job.company)}</strong></td>
+            <td title="${escapeHtml(job.position || '')}">${escapeHtml(job.position || '-')}</td>
             <td>${job.updated_at ? job.updated_at.substring(0, 10) : '-'}</td>
             <td>${job.apply_date || '-'}</td>
             <td>${job.pass_screening || 0}</td>
             <td>${job.in_exam || 0}</td>
             <td>${job.in_interview || 0}</td>
-            <td class="notes-cell">${job.notes ? escapeHtml(job.notes) : '-'}</td>
+            <td class="notes-cell" title="${escapeHtml(job.notes || '')}">${job.notes ? escapeHtml(job.notes) : '-'}</td>
             <td>
                 <div class="action-btns">
                     ${job.link ? `<a href="${escapeHtml(job.link)}" target="_blank" class="btn btn-sm btn-secondary">链接</a>` : ''}

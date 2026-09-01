@@ -313,39 +313,71 @@ def delete_job(job_id):
 @app.route('/api/stats', methods=['GET'])
 @login_required
 def get_stats():
+    import re
+    from datetime import date
+
     user_id = request.user_id
     base_query = JobApplication.query.filter_by(user_id=user_id)
+    today = date.today()
 
     # 计算招聘平台总岗位数
     platform_query = base_query.filter_by(category='招聘平台')
     platform_total_positions = 0
+    platform_no_reply = 0  # 从备注中提取已读不回
+
     for p in platform_query.all():
         # 从岗位字段提取数字
         pos = p.position
         if pos:
-            import re
             numbers = re.findall(r'\d+', pos)
             if numbers:
                 platform_total_positions += int(numbers[0])
 
-    # 非招聘平台记录数
-    normal_count = base_query.filter(JobApplication.category != '招聘平台').count()
+        # 从备注中提取已读不回数量
+        if p.notes:
+            # 匹配 "X个已读不回" 或 "X个已读"
+            match = re.search(r'(\d+)\s*个\s*已读\s*不回', p.notes)
+            if match:
+                platform_no_reply += int(match.group(1))
 
-    # 总投递 = 正常记录 + 招聘平台岗位数
-    total = normal_count + platform_total_positions
-
-    # 状态统计（仅非招聘平台）
+    # 非招聘平台记录（有投递时间的才算）
     normal_query = base_query.filter(JobApplication.category != '招聘平台')
-    pending = normal_query.filter(JobApplication.status.in_(['流程中', '笔试通过', '面试中'])).count()
+    # 有投递时间的记录
+    dated_query = normal_query.filter(JobApplication.apply_date.isnot(None))
+    # 无投递时间的记录
+    undated_query = normal_query.filter(JobApplication.apply_date.is_(None))
+
+    # 总投递 = 有投递时间的记录 + 招聘平台岗位数
+    total = dated_query.count() + platform_total_positions
+
+    # 超1月不回复：有投递时间 + 流程中 + 投递时间超过1个月
+    over_1month = 0
+    for job in dated_query.filter(JobApplication.status.in_(['流程中', '笔试通过', '面试中'])).all():
+        if job.apply_date:
+            days_diff = (today - job.apply_date).days
+            if days_diff > 30:
+                over_1month += 1
+
+    # 已读不回：从招聘平台备注中提取
+    no_reply = platform_no_reply
+
+    # 虚拟已挂 = 超1月不回复 + 已读不回
+    virtual_rejected = over_1month + no_reply
+
+    # 已挂：简历挂 + 笔试挂
     rejected = normal_query.filter(JobApplication.status.in_(['简历挂', '笔试挂'])).count()
-    interview = normal_query.filter_by(status='面试中').count()
+
+    # 进面：面试中 + 面试放弃（没去也算）
+    interview = normal_query.filter(JobApplication.status.in_(['面试中', '面试放弃'])).count()
+
+    # 笔试：笔试通过 + 笔试挂
     written = normal_query.filter(JobApplication.status.in_(['笔试通过', '笔试挂'])).count()
+
+    # Offer
     offer = normal_query.filter_by(status='已拿offer').count()
 
-    # 超1月不回复和已读不回
-    over_1month = normal_query.filter_by(status='超1月不回复').count()
-    no_reply = normal_query.filter_by(status='已读不回').count()
-    virtual_rejected = over_1month + no_reply
+    # 流程中 = 有投递时间 - 已挂 - 超1月 - 已读不回
+    pending = dated_query.count() - rejected - over_1month
 
     # Category stats
     categories = ['国企', '外企', '私企', '招聘平台']
