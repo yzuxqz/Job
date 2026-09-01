@@ -502,7 +502,7 @@ function renderMainTable() {
     });
 
     if (filtered.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="icon">📭</div><p>暂无数据</p></td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="11" class="empty-state"><div class="icon">📭</div><p>暂无数据</p></td></tr>';
         return;
     }
 
@@ -516,6 +516,7 @@ function renderMainTable() {
             <td>${job.source}</td>
             <td><span class="status-badge status-${job.status}">${job.status}</span></td>
             <td>${job.exam_date || '-'}</td>
+            <td>${job.interview_date || '-'}</td>
             <td class="notes-cell" title="${escapeHtml(job.notes || '')}">${job.notes ? escapeHtml(job.notes) : '-'}</td>
             <td>
                 <div class="action-btns">
@@ -547,7 +548,7 @@ function renderPlatformTable() {
     });
 
     if (filtered.length === 0) {
-        platformTableBody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="icon">📭</div><p>暂无数据</p></td></tr>';
+        platformTableBody.innerHTML = '<tr><td colspan="11" class="empty-state"><div class="icon">📭</div><p>暂无数据</p></td></tr>';
         return;
     }
 
@@ -561,6 +562,7 @@ function renderPlatformTable() {
             <td>${job.pass_screening || 0}</td>
             <td>${job.in_exam || 0}</td>
             <td>${job.in_interview || 0}</td>
+            <td>${job.rejected_count || 0}</td>
             <td class="notes-cell" title="${escapeHtml(job.notes || '')}">${job.notes ? escapeHtml(job.notes) : '-'}</td>
             <td>
                 <div class="action-btns">
@@ -617,6 +619,7 @@ function openModal(job = null) {
         document.getElementById('form-date').value = job.apply_date || '';
         document.getElementById('form-status').value = job.status;
         document.getElementById('form-exam-date').value = job.exam_date || '';
+        document.getElementById('form-interview-date').value = job.interview_date || '';
         document.getElementById('form-link').value = job.link || '';
         document.getElementById('form-notes').value = job.notes || '';
     } else {
@@ -686,6 +689,7 @@ function handleSubmit(e) {
         apply_date: document.getElementById('form-date').value || null,
         status: document.getElementById('form-status').value,
         exam_date: document.getElementById('form-exam-date').value || null,
+        interview_date: document.getElementById('form-interview-date').value || null,
         link: document.getElementById('form-link').value,
         notes: document.getElementById('form-notes').value,
     };

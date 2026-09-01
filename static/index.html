@@ -190,12 +190,13 @@
                         <th>渠道</th>
                         <th class="sortable" data-field="status">状态</th>
                         <th class="sortable" data-field="exam_date">笔试时间</th>
+                        <th class="sortable" data-field="interview_date">面试时间</th>
                         <th>备注</th>
                         <th>操作</th>
                     </tr>
                 </thead>
                 <tbody id="job-table-body">
-                    <tr><td colspan="10" class="loading">加载中</td></tr>
+                    <tr><td colspan="11" class="loading">加载中</td></tr>
                 </tbody>
             </table>
 
@@ -211,12 +212,13 @@
                         <th>过初筛</th>
                         <th>笔试中</th>
                         <th>面试中</th>
+                        <th>挂几个</th>
                         <th>备注</th>
                         <th>操作</th>
                     </tr>
                 </thead>
                 <tbody id="platform-table-body">
-                    <tr><td colspan="10" class="loading">加载中</td></tr>
+                    <tr><td colspan="11" class="loading">加载中</td></tr>
                 </tbody>
             </table>
         </section>
@@ -368,6 +370,12 @@
                         <label>笔试时间</label>
                         <input type="date" id="form-exam-date" />
                     </div>
+                    <div class="form-group">
+                        <label>面试时间</label>
+                        <input type="date" id="form-interview-date" />
+                    </div>
+                </div>
+                <div class="form-row">
                     <div class="form-group">
                         <label>投递链接</label>
                         <input type="url" id="form-link" placeholder="https://..." />

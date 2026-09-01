@@ -67,6 +67,7 @@ class JobApplication(db.Model):
     apply_date = db.Column(db.Date, nullable=True)
     status = db.Column(db.String(50), default='流程中')
     exam_date = db.Column(db.Date, nullable=True)
+    interview_date = db.Column(db.Date, nullable=True)
     link = db.Column(db.String(500), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     # 招聘平台专用字段
@@ -77,6 +78,13 @@ class JobApplication(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
+        # 从备注中解析挂数量
+        rejected_count = 0
+        if self.notes:
+            import re
+            match = re.search(r'挂\s*(\d+)\s*个', self.notes)
+            if match:
+                rejected_count = int(match.group(1))
         return {
             'id': self.id,
             'company': self.company,
@@ -86,11 +94,13 @@ class JobApplication(db.Model):
             'apply_date': self.apply_date.isoformat() if self.apply_date else None,
             'status': self.status,
             'exam_date': self.exam_date.isoformat() if self.exam_date else None,
+            'interview_date': self.interview_date.isoformat() if self.interview_date else None,
             'link': self.link or '',
             'notes': self.notes or '',
             'pass_screening': self.pass_screening or 0,
             'in_exam': self.in_exam or 0,
             'in_interview': self.in_interview or 0,
+            'rejected_count': rejected_count,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -290,6 +300,7 @@ def create_job():
         apply_date=datetime.strptime(data['apply_date'], '%Y-%m-%d').date() if data.get('apply_date') else None,
         status=data.get('status', '流程中'),
         exam_date=datetime.strptime(data['exam_date'], '%Y-%m-%d').date() if data.get('exam_date') else None,
+        interview_date=datetime.strptime(data['interview_date'], '%Y-%m-%d').date() if data.get('interview_date') else None,
         link=data.get('link', ''),
         notes=data.get('notes', ''),
         pass_screening=data.get('pass_screening', 0),
@@ -315,6 +326,7 @@ def update_job(job_id):
     job.apply_date = datetime.strptime(data['apply_date'], '%Y-%m-%d').date() if data.get('apply_date') else job.apply_date
     job.status = data.get('status', job.status)
     job.exam_date = datetime.strptime(data['exam_date'], '%Y-%m-%d').date() if data.get('exam_date') else job.exam_date
+    job.interview_date = datetime.strptime(data['interview_date'], '%Y-%m-%d').date() if data.get('interview_date') else job.interview_date
     job.link = data.get('link', job.link)
     job.notes = data.get('notes', job.notes)
     job.pass_screening = data.get('pass_screening', job.pass_screening)
@@ -403,8 +415,16 @@ def get_stats():
     # 进面：面试中 + 面试放弃
     interview = normal_query.filter(JobApplication.status.in_(['面试中', '面试放弃'])).count()
 
-    # 笔试：笔试通过 + 笔试挂
-    written = normal_query.filter(JobApplication.status.in_(['笔试通过', '笔试挂'])).count()
+    # 笔试：笔试通过 + 笔试挂 + 有笔试时间且状态为面试中/已拿offer的（通过笔试进入后续流程的）
+    written = normal_query.filter(
+        db.or_(
+            JobApplication.status.in_(['笔试通过', '笔试挂']),
+            db.and_(
+                JobApplication.exam_date.isnot(None),
+                JobApplication.status.in_(['面试中', '面试放弃', '已拿offer'])
+            )
+        )
+    ).count()
 
     # Offer
     offer = normal_query.filter_by(status='已拿offer').count()
@@ -472,6 +492,7 @@ def batch_import():
             apply_date=datetime.strptime(job_data['apply_date'], '%Y-%m-%d').date() if job_data.get('apply_date') else None,
             status=job_data.get('status', '流程中'),
             exam_date=datetime.strptime(job_data['exam_date'], '%Y-%m-%d').date() if job_data.get('exam_date') else None,
+            interview_date=datetime.strptime(job_data['interview_date'], '%Y-%m-%d').date() if job_data.get('interview_date') else None,
             link=job_data.get('link', ''),
             notes=job_data.get('notes', ''),
             pass_screening=job_data.get('pass_screening', 0),
