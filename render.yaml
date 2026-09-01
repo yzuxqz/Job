@@ -9,6 +9,12 @@ services:
         value: 3.11.0
       - key: DATABASE_PATH
         value: /opt/render/project/src/data/jobs.db
+      - key: GITHUB_REPO
+        value: yzuxqz/Job
+      - key: GITHUB_BRANCH
+        value: main
+      - key: GITHUB_TOKEN
+        sync: false
     disk:
       - name: data
         mountPath: /opt/render/project/src/data

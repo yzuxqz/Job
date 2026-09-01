@@ -51,6 +51,8 @@ const exportModalClose = document.getElementById('export-modal-close');
 const exportMarkdownBtn = document.getElementById('export-markdown-btn');
 const exportPdfBtn = document.getElementById('export-pdf-btn');
 const exportStatus = document.getElementById('export-status');
+const syncBtn = document.getElementById('sync-btn');
+const syncStatus = document.getElementById('sync-status');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -219,6 +221,9 @@ function setupEventListeners() {
 
     // Logout
     logoutBtn.addEventListener('click', logout);
+
+    // Sync
+    syncBtn.addEventListener('click', syncToGithub);
 
     // Export
     exportBtn.addEventListener('click', () => {
@@ -1014,6 +1019,41 @@ function initWeeklyChart(platformDailyRecords) {
             }
         }
     });
+}
+
+// ==================== Sync Functions ====================
+
+async function syncToGithub() {
+    if (!confirm('确定要将数据库同步到GitHub吗？\n\n这将把当前所有数据推送到仓库的 jobs_export.json 文件中。')) {
+        return;
+    }
+
+    syncBtn.disabled = true;
+    syncBtn.textContent = '🔄 同步中...';
+
+    try {
+        const response = await fetch(`${API_BASE}/api/sync`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(`✅ ${data.message}\n\n提交: ${data.commit}\n查看: ${data.url}`);
+        } else {
+            alert(`❌ 同步失败: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('同步失败:', error);
+        alert('❌ 网络错误，请稍后重试');
+    } finally {
+        syncBtn.disabled = false;
+        syncBtn.textContent = '🔄 同步';
+    }
 }
 
 // ==================== Export Functions ====================

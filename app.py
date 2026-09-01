@@ -6,6 +6,7 @@ from functools import wraps
 import os
 import hashlib
 import secrets
+import json
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
@@ -692,6 +693,95 @@ def export_pdf():
         as_attachment=True,
         download_name=f'job_tracker_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
     )
+
+
+# ==================== Sync API ====================
+
+@app.route('/api/sync', methods=['POST'])
+@login_required
+def sync_to_github():
+    """将数据库导出为JSON并推送到GitHub仓库"""
+    try:
+        # 获取环境变量
+        github_token = os.environ.get('GITHUB_TOKEN')
+        github_repo = os.environ.get('GITHUB_REPO', 'yzuxqz/Job')
+        github_branch = os.environ.get('GITHUB_BRANCH', 'main')
+
+        if not github_token:
+            return jsonify({'error': '未配置 GITHUB_TOKEN 环境变量，无法同步'}), 400
+
+        # 导出数据为JSON
+        user_id = request.user_id
+        jobs = JobApplication.query.filter_by(user_id=user_id).all()
+        records = [job.to_dict() for job in jobs]
+
+        data = {
+            'export_time': datetime.now().isoformat(),
+            'count': len(records),
+            'records': records
+        }
+
+        json_content = json.dumps(data, ensure_ascii=False, indent=2)
+
+        # 使用GitHub API提交文件
+        import urllib.request
+        import urllib.error
+        import base64
+
+        file_path = 'jobs_export.json'
+        api_url = f'https://api.github.com/repos/{github_repo}/contents/{file_path}'
+
+        # 获取文件的当前SHA（如果存在）
+        headers = {
+            'Authorization': f'token {github_token}',
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+        }
+
+        # 检查文件是否已存在
+        req = urllib.request.Request(api_url, headers=headers)
+        sha = None
+        try:
+            with urllib.request.urlopen(req) as response:
+                existing = json.loads(response.read().decode())
+                sha = existing.get('sha')
+        except urllib.error.HTTPError as e:
+            if e.code != 404:
+                raise
+
+        # 提交文件
+        content_encoded = base64.b64encode(json_content.encode('utf-8')).decode('utf-8')
+
+        commit_data = {
+            'message': f'同步数据库 {datetime.now().strftime("%Y-%m-%d %H:%M")} ({len(records)}条记录)',
+            'content': content_encoded,
+            'branch': github_branch
+        }
+
+        if sha:
+            commit_data['sha'] = sha
+
+        req = urllib.request.Request(
+            api_url,
+            data=json.dumps(commit_data).encode('utf-8'),
+            headers=headers,
+            method='PUT'
+        )
+
+        with urllib.request.urlopen(req) as response:
+            result = json.loads(response.read().decode())
+
+        return jsonify({
+            'message': f'同步成功！已推送 {len(records)} 条记录到 GitHub',
+            'commit': result.get('commit', {}).get('sha', '')[:7],
+            'url': result.get('content', {}).get('html_url', '')
+        })
+
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode() if e.fp else ''
+        return jsonify({'error': f'GitHub API 错误: {e.code} {error_body}'}), 500
+    except Exception as e:
+        return jsonify({'error': f'同步失败: {str(e)}'}), 500
 
 
 if __name__ == '__main__':
