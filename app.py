@@ -1,11 +1,18 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
+from functools import wraps
 import os
+import hashlib
+import secrets
+import uuid
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
+
+# Secret key for session tokens
+app.config['SECRET_KEY'] = secrets.token_hex(32)
 
 # Database configuration
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -15,15 +22,51 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
-# Database Model
+# ==================== Database Models ====================
+
+class User(db.Model):
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    salt = db.Column(db.String(32), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def set_password(self, password):
+        self.salt = secrets.token_hex(16)
+        self.password_hash = hashlib.sha256((password + self.salt).encode()).hexdigest()
+
+    def check_password(self, password):
+        return self.password_hash == hashlib.sha256((password + self.salt).encode()).hexdigest()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class Session(db.Model):
+    __tablename__ = 'sessions'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    token = db.Column(db.String(64), unique=True, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class JobApplication(db.Model):
     __tablename__ = 'job_applications'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     company = db.Column(db.String(200), nullable=False)
     position = db.Column(db.String(300), nullable=False)
-    category = db.Column(db.String(50), default='国企')  # 国企/央企, 外企, 私企
-    source = db.Column(db.String(50), default='官网')  # 官网, 国聘, 应届生, 智联, 51job, boss
+    category = db.Column(db.String(50), default='国企')
+    source = db.Column(db.String(50), default='官网')
     apply_date = db.Column(db.Date, nullable=True)
     status = db.Column(db.String(50), default='流程中')
     exam_date = db.Column(db.Date, nullable=True)
@@ -54,22 +97,142 @@ with app.app_context():
     db.create_all()
 
 
-# ==================== API Routes ====================
+# ==================== Auth Helpers ====================
+
+def hash_password(password, salt):
+    return hashlib.sha256((password + salt).encode()).hexdigest()
+
+
+def generate_token():
+    return secrets.token_hex(32)
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': '请先登录'}), 401
+
+        session = Session.query.filter_by(token=token).first()
+        if not session or session.expires_at < datetime.utcnow():
+            return jsonify({'error': '登录已过期，请重新登录'}), 401
+
+        request.user_id = session.user_id
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+# ==================== Auth API ====================
 
 @app.route('/')
 def index():
     return send_from_directory('static', 'index.html')
 
 
-# Get all applications
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
+
+    if not username or not password:
+        return jsonify({'error': '用户名和密码不能为空'}), 400
+
+    if len(username) < 3:
+        return jsonify({'error': '用户名至少3个字符'}), 400
+
+    if len(password) < 6:
+        return jsonify({'error': '密码至少6个字符'}), 400
+
+    if User.query.filter_by(username=username).first():
+        return jsonify({'error': '用户名已存在'}), 409
+
+    user = User(username=username)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({'message': '注册成功', 'user': user.to_dict()}), 201
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
+
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.check_password(password):
+        return jsonify({'error': '用户名或密码错误'}), 401
+
+    # Create session
+    token = generate_token()
+    expires_at = datetime.utcnow() + timedelta(days=30)
+    session = Session(user_id=user.id, token=token, expires_at=expires_at)
+    db.session.add(session)
+    db.session.commit()
+
+    return jsonify({
+        'message': '登录成功',
+        'token': token,
+        'user': user.to_dict()
+    })
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+@login_required
+def logout():
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    session = Session.query.filter_by(token=token).first()
+    if session:
+        db.session.delete(session)
+        db.session.commit()
+    return jsonify({'message': '已退出登录'})
+
+
+@app.route('/api/auth/me', methods=['GET'])
+@login_required
+def get_current_user():
+    user = User.query.get(request.user_id)
+    return jsonify({'user': user.to_dict()})
+
+
+@app.route('/api/auth/change-password', methods=['POST'])
+@login_required
+def change_password():
+    data = request.get_json()
+    old_password = data.get('old_password', '')
+    new_password = data.get('new_password', '')
+
+    if len(new_password) < 6:
+        return jsonify({'error': '新密码至少6个字符'}), 400
+
+    user = User.query.get(request.user_id)
+    if not user.check_password(old_password):
+        return jsonify({'error': '原密码错误'}), 400
+
+    user.set_password(new_password)
+    db.session.commit()
+
+    # Invalidate all sessions
+    Session.query.filter_by(user_id=user.id).delete()
+    db.session.commit()
+
+    return jsonify({'message': '密码修改成功，请重新登录'})
+
+
+# ==================== Job API ====================
+
 @app.route('/api/jobs', methods=['GET'])
+@login_required
 def get_jobs():
     category = request.args.get('category', 'all')
     status = request.args.get('status', 'all')
     source = request.args.get('source', 'all')
     search = request.args.get('search', '')
 
-    query = JobApplication.query
+    query = JobApplication.query.filter_by(user_id=request.user_id)
 
     if category != 'all':
         query = query.filter_by(category=category)
@@ -89,19 +252,20 @@ def get_jobs():
     return jsonify([job.to_dict() for job in jobs])
 
 
-# Get single application
 @app.route('/api/jobs/<int:job_id>', methods=['GET'])
+@login_required
 def get_job(job_id):
-    job = JobApplication.query.get_or_404(job_id)
+    job = JobApplication.query.filter_by(id=job_id, user_id=request.user_id).first_or_404()
     return jsonify(job.to_dict())
 
 
-# Create new application
 @app.route('/api/jobs', methods=['POST'])
+@login_required
 def create_job():
     data = request.get_json()
 
     job = JobApplication(
+        user_id=request.user_id,
         company=data.get('company', ''),
         position=data.get('position', ''),
         category=data.get('category', '国企'),
@@ -118,10 +282,10 @@ def create_job():
     return jsonify(job.to_dict()), 201
 
 
-# Update application
 @app.route('/api/jobs/<int:job_id>', methods=['PUT'])
+@login_required
 def update_job(job_id):
-    job = JobApplication.query.get_or_404(job_id)
+    job = JobApplication.query.filter_by(id=job_id, user_id=request.user_id).first_or_404()
     data = request.get_json()
 
     job.company = data.get('company', job.company)
@@ -138,35 +302,37 @@ def update_job(job_id):
     return jsonify(job.to_dict())
 
 
-# Delete application
 @app.route('/api/jobs/<int:job_id>', methods=['DELETE'])
+@login_required
 def delete_job(job_id):
-    job = JobApplication.query.get_or_404(job_id)
+    job = JobApplication.query.filter_by(id=job_id, user_id=request.user_id).first_or_404()
     db.session.delete(job)
     db.session.commit()
     return jsonify({'message': '删除成功'})
 
 
-# Get statistics
 @app.route('/api/stats', methods=['GET'])
+@login_required
 def get_stats():
-    total = JobApplication.query.count()
-    pending = JobApplication.query.filter(JobApplication.status.in_(['流程中', '笔试通过', '面试中'])).count()
-    rejected = JobApplication.query.filter(JobApplication.status.in_(['简历挂', '笔试挂'])).count()
-    interview = JobApplication.query.filter_by(status='面试中').count()
-    written = JobApplication.query.filter(JobApplication.status.in_(['笔试通过', '笔试挂'])).count()
-    offer = JobApplication.query.filter_by(status='已拿offer').count()
+    user_id = request.user_id
+    base_query = JobApplication.query.filter_by(user_id=user_id)
+
+    total = base_query.count()
+    pending = base_query.filter(JobApplication.status.in_(['流程中', '笔试通过', '面试中'])).count()
+    rejected = base_query.filter(JobApplication.status.in_(['简历挂', '笔试挂'])).count()
+    interview = base_query.filter_by(status='面试中').count()
+    written = base_query.filter(JobApplication.status.in_(['笔试通过', '笔试挂'])).count()
+    offer = base_query.filter_by(status='已拿offer').count()
 
     # Category stats
-    state_count = JobApplication.query.filter_by(category='国企').count()
-    state_reject = JobApplication.query.filter_by(category='国企', status='简历挂').count() + \
-                   JobApplication.query.filter_by(category='国企', status='笔试挂').count()
-    foreign_count = JobApplication.query.filter_by(category='外企').count()
-    foreign_reject = JobApplication.query.filter_by(category='外企', status='简历挂').count() + \
-                     JobApplication.query.filter_by(category='外企', status='笔试挂').count()
-    private_count = JobApplication.query.filter_by(category='私企').count()
-    private_reject = JobApplication.query.filter_by(category='私企', status='简历挂').count() + \
-                     JobApplication.query.filter_by(category='私企', status='笔试挂').count()
+    categories = ['国企', '外企', '私企', '招聘平台']
+    cat_stats = {}
+    for cat in categories:
+        cat_query = base_query.filter_by(category=cat)
+        cat_stats[cat] = {
+            'count': cat_query.count(),
+            'reject': cat_query.filter(JobApplication.status.in_(['简历挂', '笔试挂'])).count()
+        }
 
     return jsonify({
         'total': total,
@@ -175,22 +341,19 @@ def get_stats():
         'interview': interview,
         'written': written,
         'offer': offer,
-        'categories': {
-            'state': {'count': state_count, 'reject': state_reject},
-            'foreign': {'count': foreign_count, 'reject': foreign_reject},
-            'private': {'count': private_count, 'reject': private_reject},
-        }
+        'categories': cat_stats
     })
 
 
-# Batch import
 @app.route('/api/jobs/import', methods=['POST'])
+@login_required
 def batch_import():
     data = request.get_json()
     jobs = data.get('jobs', [])
 
     for job_data in jobs:
         job = JobApplication(
+            user_id=request.user_id,
             company=job_data.get('company', ''),
             position=job_data.get('position', ''),
             category=job_data.get('category', '国企'),

@@ -7,11 +7,67 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="app">
+    <!-- Auth Pages -->
+    <div id="auth-container" class="auth-container">
+        <div class="auth-box">
+            <div class="auth-header">
+                <h1>📊 秋招求职追踪</h1>
+                <p>2027届秋季校园招聘 · 账号登录</p>
+            </div>
+
+            <!-- Login Form -->
+            <div id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="login-username" placeholder="请输入用户名" />
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="login-password" placeholder="请输入密码" />
+                </div>
+                <div id="login-error" class="error-msg"></div>
+                <button class="btn btn-primary btn-block" id="login-btn">登 录</button>
+                <p class="auth-switch">
+                    还没有账号？<a href="#" id="show-register">立即注册</a>
+                </p>
+            </div>
+
+            <!-- Register Form -->
+            <div id="register-form" class="auth-form hidden">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="register-username" placeholder="请输入用户名（至少3个字符）" />
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="register-password" placeholder="请输入密码（至少6个字符）" />
+                </div>
+                <div class="form-group">
+                    <label>确认密码</label>
+                    <input type="password" id="register-password2" placeholder="请再次输入密码" />
+                </div>
+                <div id="register-error" class="error-msg"></div>
+                <button class="btn btn-primary btn-block" id="register-btn">注 册</button>
+                <p class="auth-switch">
+                    已有账号？<a href="#" id="show-login">立即登录</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-container" class="app hidden">
         <!-- Header -->
         <header class="header">
-            <h1>秋招求职进度追踪</h1>
-            <p class="subtitle">2027届秋季校园招聘 · 实时追踪</p>
+            <div class="header-left">
+                <h1>秋招求职进度追踪</h1>
+                <p class="subtitle">2027届秋季校园招聘 · 实时追踪</p>
+            </div>
+            <div class="header-right">
+                <span class="user-info" id="user-info">👤 用户</span>
+                <button class="btn btn-sm btn-secondary" id="change-password-btn">修改密码</button>
+                <button class="btn btn-sm btn-danger" id="logout-btn">退出登录</button>
+            </div>
         </header>
 
         <!-- Stats Dashboard -->
@@ -68,9 +124,10 @@
             <div class="filter-group">
                 <select id="filter-category">
                     <option value="all">全部类型</option>
-                    <option value="国企">国企/央企</option>
+                    <option value="国企">央国企</option>
                     <option value="外企">外企</option>
-                    <option value="私企">上市私企</option>
+                    <option value="私企">私企</option>
+                    <option value="招聘平台">招聘平台</option>
                 </select>
                 <select id="filter-status">
                     <option value="all">全部状态</option>
@@ -122,16 +179,20 @@
         <!-- Category Summary -->
         <section class="category-summary">
             <div class="category-card">
-                <h3>国企/央企</h3>
-                <p><span id="cat-state-count">0</span> 家 · 挂 <span id="cat-state-reject">0</span> 个</p>
+                <h3>🏛️ 央国企</h3>
+                <p><span id="cat-国企-count">0</span> 家 · 挂 <span id="cat-国企-reject">0</span> 个</p>
             </div>
             <div class="category-card">
-                <h3>外企</h3>
-                <p><span id="cat-foreign-count">0</span> 家 · 挂 <span id="cat-foreign-reject">0</span> 个</p>
+                <h3>🌍 外企</h3>
+                <p><span id="cat-外企-count">0</span> 家 · 挂 <span id="cat-外企-reject">0</span> 个</p>
             </div>
             <div class="category-card">
-                <h3>上市私企</h3>
-                <p><span id="cat-private-count">0</span> 家 · 挂 <span id="cat-private-reject">0</span> 个</p>
+                <h3>🏢 私企</h3>
+                <p><span id="cat-私企-count">0</span> 家 · 挂 <span id="cat-私企-reject">0</span> 个</p>
+            </div>
+            <div class="category-card">
+                <h3>📱 招聘平台</h3>
+                <p><span id="cat-招聘平台-count">0</span> 家 · 挂 <span id="cat-招聘平台-reject">0</span> 个</p>
             </div>
         </section>
     </div>
@@ -163,9 +224,10 @@
                     <div class="form-group">
                         <label>类型</label>
                         <select id="form-category">
-                            <option value="国企">国企/央企</option>
+                            <option value="国企">央国企</option>
                             <option value="外企">外企</option>
-                            <option value="私企">上市私企</option>
+                            <option value="私企">私企</option>
+                            <option value="招聘平台">招聘平台</option>
                         </select>
                     </div>
                 </div>
@@ -212,6 +274,35 @@
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="form-cancel">取消</button>
                     <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal" id="password-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>修改密码</h2>
+                <button class="modal-close" id="password-modal-close">&times;</button>
+            </div>
+            <form id="password-form">
+                <div class="form-group">
+                    <label>原密码</label>
+                    <input type="password" id="old-password" required />
+                </div>
+                <div class="form-group">
+                    <label>新密码</label>
+                    <input type="password" id="new-password" placeholder="至少6个字符" required />
+                </div>
+                <div class="form-group">
+                    <label>确认新密码</label>
+                    <input type="password" id="new-password2" required />
+                </div>
+                <div id="password-error" class="error-msg"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="password-cancel">取消</button>
+                    <button type="submit" class="btn btn-primary">确认修改</button>
                 </div>
             </form>
         </div>
