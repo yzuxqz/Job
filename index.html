@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>秋招求职进度追踪系统</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>秋招求职进度追踪</h1>
+            <p class="subtitle">2027届秋季校园招聘 · 实时追踪</p>
+        </header>
+
+        <!-- Stats Dashboard -->
+        <section class="stats-dashboard">
+            <div class="stat-card total">
+                <div class="stat-icon">📊</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="stat-total">0</span>
+                    <span class="stat-label">总投递</span>
+                </div>
+            </div>
+            <div class="stat-card pending">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="stat-pending">0</span>
+                    <span class="stat-label">流程中</span>
+                </div>
+            </div>
+            <div class="stat-card rejected">
+                <div class="stat-icon">❌</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="stat-rejected">0</span>
+                    <span class="stat-label">已挂</span>
+                </div>
+            </div>
+            <div class="stat-card interview">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="stat-interview">0</span>
+                    <span class="stat-label">进面</span>
+                </div>
+            </div>
+            <div class="stat-card written">
+                <div class="stat-icon">📝</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="stat-written">0</span>
+                    <span class="stat-label">笔试</span>
+                </div>
+            </div>
+            <div class="stat-card offer">
+                <div class="stat-icon">🎉</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="stat-offer">0</span>
+                    <span class="stat-label">Offer</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filter & Search -->
+        <section class="controls">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="搜索公司、岗位..." />
+            </div>
+            <div class="filter-group">
+                <select id="filter-category">
+                    <option value="all">全部类型</option>
+                    <option value="国企">国企/央企</option>
+                    <option value="外企">外企</option>
+                    <option value="私企">上市私企</option>
+                </select>
+                <select id="filter-status">
+                    <option value="all">全部状态</option>
+                    <option value="流程中">流程中</option>
+                    <option value="简历挂">简历挂</option>
+                    <option value="笔试挂">笔试挂</option>
+                    <option value="笔试通过">笔试通过</option>
+                    <option value="面试中">面试中</option>
+                    <option value="面试放弃">面试放弃</option>
+                    <option value="已拿offer">已拿offer</option>
+                    <option value="已读不回">已读不回</option>
+                </select>
+                <select id="filter-source">
+                    <option value="all">全部渠道</option>
+                    <option value="官网">官网网申</option>
+                    <option value="国聘">国聘网</option>
+                    <option value="应届生">应届生求职网</option>
+                    <option value="智联">智联招聘</option>
+                    <option value="51job">51Job</option>
+                    <option value="boss">BOSS直聘</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" id="add-btn">+ 新增投递</button>
+        </section>
+
+        <!-- Table -->
+        <section class="table-container">
+            <table class="job-table">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>企业</th>
+                        <th>岗位</th>
+                        <th>投递时间</th>
+                        <th>渠道</th>
+                        <th>状态</th>
+                        <th>笔试时间</th>
+                        <th>备注</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="job-table-body">
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Category Summary -->
+        <section class="category-summary">
+            <div class="category-card">
+                <h3>国企/央企</h3>
+                <p><span id="cat-state-count">0</span> 家 · 挂 <span id="cat-state-reject">0</span> 个</p>
+            </div>
+            <div class="category-card">
+                <h3>外企</h3>
+                <p><span id="cat-foreign-count">0</span> 家 · 挂 <span id="cat-foreign-reject">0</span> 个</p>
+            </div>
+            <div class="category-card">
+                <h3>上市私企</h3>
+                <p><span id="cat-private-count">0</span> 家 · 挂 <span id="cat-private-reject">0</span> 个</p>
+            </div>
+            <div class="category-card">
+                <h3>招聘平台</h3>
+                <p><span id="cat-platform-count">0</span> 家 · 挂 <span id="cat-platform-reject">0</span> 个</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">新增投递</h2>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <form id="job-form">
+                <input type="hidden" id="form-id" />
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>企业名称 *</label>
+                        <input type="text" id="form-company" required />
+                    </div>
+                    <div class="form-group">
+                        <label>岗位名称 *</label>
+                        <input type="text" id="form-position" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>投递时间</label>
+                        <input type="date" id="form-date" />
+                    </div>
+                    <div class="form-group">
+                        <label>类型</label>
+                        <select id="form-category">
+                            <option value="国企">国企/央企</option>
+                            <option value="外企">外企</option>
+                            <option value="私企">上市私企</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>渠道</label>
+                        <select id="form-source">
+                            <option value="官网">官网网申</option>
+                            <option value="国聘">国聘网</option>
+                            <option value="应届生">应届生求职网</option>
+                            <option value="智联">智联招聘</option>
+                            <option value="51job">51Job</option>
+                            <option value="boss">BOSS直聘</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>状态</label>
+                        <select id="form-status">
+                            <option value="流程中">流程中</option>
+                            <option value="简历挂">简历挂</option>
+                            <option value="笔试挂">笔试挂</option>
+                            <option value="笔试通过">笔试通过</option>
+                            <option value="面试中">面试中</option>
+                            <option value="面试放弃">面试放弃</option>
+                            <option value="已拿offer">已拿offer</option>
+                            <option value="已读不回">已读不回</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>笔试时间</label>
+                        <input type="date" id="form-exam-date" />
+                    </div>
+                    <div class="form-group">
+                        <label>投递链接</label>
+                        <input type="url" id="form-link" placeholder="https://..." />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>备注</label>
+                    <textarea id="form-notes" rows="2" placeholder="其他说明..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="form-cancel">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
