@@ -2,12 +2,14 @@ services:
   - type: web
     name: job-tracker
     env: python
-    buildCommand: pip install -r requirements.txt && python import_data.py
+    buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: DATABASE_PATH
+        value: /opt/render/project/src/data/jobs.db
     disk:
       - name: data
-        mountPath: /opt/render/project/src
+        mountPath: /opt/render/project/src/data
         sizeGB: 1

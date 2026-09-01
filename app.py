@@ -12,8 +12,9 @@ CORS(app)
 
 app.config['SECRET_KEY'] = secrets.token_hex(32)
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(basedir, "jobs.db")}'
+# 数据库路径：优先使用环境变量（Render持久化磁盘），否则使用本地路径
+db_path = os.environ.get('DATABASE_PATH', os.path.join(os.path.abspath(os.path.dirname(__file__)), 'jobs.db'))
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
