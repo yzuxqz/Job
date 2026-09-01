@@ -601,6 +601,7 @@ def export_markdown():
 @login_required
 def export_pdf():
     from fpdf import FPDF
+    import os
 
     user_id = request.user_id
     jobs = JobApplication.query.filter_by(user_id=user_id).order_by(JobApplication.category, JobApplication.apply_date).all()
@@ -613,21 +614,19 @@ def export_pdf():
 
     class PDF(FPDF):
         def header(self):
-            self.set_font('DejaVu', 'B', 16)
+            self.set_font('Helvetica', 'B', 16)
             self.cell(0, 10, 'Job Application Tracker', 0, 1, 'C')
-            self.set_font('DejaVu', '', 10)
+            self.set_font('Helvetica', '', 10)
             self.cell(0, 8, f'Export Time: {datetime.now().strftime("%Y-%m-%d %H:%M")}', 0, 1, 'C')
             self.ln(5)
 
         def footer(self):
             self.set_y(-15)
-            self.set_font('DejaVu', '', 8)
+            self.set_font('Helvetica', '', 8)
             self.cell(0, 10, f'Page {self.page_no()}/{{nb}}', 0, 0, 'C')
 
     pdf = PDF()
     pdf.alias_nb_pages()
-    pdf.add_font('DejaVu', '', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', uni=True)
-    pdf.add_font('DejaVu', 'B', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', uni=True)
     pdf.set_auto_page_break(auto=True, margin=20)
     pdf.add_page()
 
@@ -639,13 +638,13 @@ def export_pdf():
             continue
 
         # Category title
-        pdf.set_font('DejaVu', 'B', 13)
+        pdf.set_font('Helvetica', 'B', 13)
         pdf.cell(0, 10, f'{cat_name} ({len(items)} items)', 0, 1)
         pdf.ln(2)
 
         if cat == '招聘平台':
             # Table header
-            pdf.set_font('DejaVu', 'B', 8)
+            pdf.set_font('Helvetica', 'B', 8)
             headers = ['#', 'Company', 'Position', 'Date', 'Screen', 'Exam', 'Interview', 'Rejected', 'Notes']
             col_widths = [10, 35, 30, 22, 18, 18, 18, 18, 40]
             for i, h in enumerate(headers):
@@ -653,7 +652,7 @@ def export_pdf():
             pdf.ln()
 
             # Table rows
-            pdf.set_font('DejaVu', '', 7)
+            pdf.set_font('Helvetica', '', 7)
             for idx, job in enumerate(items, 1):
                 row = [str(idx), job.company, job.position or '-', job.apply_date or '-',
                        str(job.pass_screening or 0), str(job.in_exam or 0),
@@ -663,7 +662,7 @@ def export_pdf():
                 pdf.ln()
         else:
             # Table header
-            pdf.set_font('DejaVu', 'B', 8)
+            pdf.set_font('Helvetica', 'B', 8)
             headers = ['#', 'Company', 'Position', 'Date', 'Source', 'Status', 'Exam', 'Interview', 'Notes']
             col_widths = [10, 35, 30, 22, 20, 22, 22, 22, 26]
             for i, h in enumerate(headers):
@@ -671,7 +670,7 @@ def export_pdf():
             pdf.ln()
 
             # Table rows
-            pdf.set_font('DejaVu', '', 7)
+            pdf.set_font('Helvetica', '', 7)
             for idx, job in enumerate(items, 1):
                 row = [str(idx), job.company, job.position, job.apply_date or '-', job.source,
                        job.status, job.exam_date or '-', job.interview_date or '-', job.notes or '-']
