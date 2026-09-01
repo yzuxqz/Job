@@ -320,37 +320,48 @@ def get_stats():
     base_query = JobApplication.query.filter_by(user_id=user_id)
     today = date.today()
 
-    # 计算招聘平台总岗位数
-    platform_query = base_query.filter_by(category='招聘平台')
+    # 获取筛选参数
+    category_filter = request.args.get('category', 'all')
+
+    # 根据页签筛选
+    if category_filter == 'all':
+        query = base_query
+    elif category_filter == 'visualization':
+        query = base_query
+    else:
+        query = base_query.filter_by(category=category_filter)
+
+    # 计算招聘平台总岗位数、已读不回、挂的数量
+    platform_query = query.filter_by(category='招聘平台')
     platform_total_positions = 0
-    platform_no_reply = 0  # 从备注中提取已读不回
+    platform_no_reply = 0
+    platform_rejected = 0
 
     for p in platform_query.all():
-        # 从岗位字段提取数字
         pos = p.position
         if pos:
             numbers = re.findall(r'\d+', pos)
             if numbers:
                 platform_total_positions += int(numbers[0])
 
-        # 从备注中提取已读不回数量
         if p.notes:
-            # 匹配 "X个已读不回" 或 "X个已读"
             match = re.search(r'(\d+)\s*个\s*已读\s*不回', p.notes)
             if match:
                 platform_no_reply += int(match.group(1))
+            # 解析挂的数量
+            match_reject = re.search(r'挂\s*(\d+)\s*个', p.notes)
+            if match_reject:
+                platform_rejected += int(match_reject.group(1))
 
-    # 非招聘平台记录（有投递时间的才算）
-    normal_query = base_query.filter(JobApplication.category != '招聘平台')
+    # 非招聘平台记录
+    normal_query = query.filter(JobApplication.category != '招聘平台')
     # 有投递时间的记录
     dated_query = normal_query.filter(JobApplication.apply_date.isnot(None))
-    # 无投递时间的记录
-    undated_query = normal_query.filter(JobApplication.apply_date.is_(None))
 
     # 总投递 = 有投递时间的记录 + 招聘平台岗位数
     total = dated_query.count() + platform_total_positions
 
-    # 超1月不回复：有投递时间 + 流程中 + 投递时间超过1个月
+    # 超1月不回复
     over_1month = 0
     for job in dated_query.filter(JobApplication.status.in_(['流程中', '笔试通过', '面试中'])).all():
         if job.apply_date:
@@ -358,13 +369,13 @@ def get_stats():
             if days_diff > 30:
                 over_1month += 1
 
-    # 已读不回：从招聘平台备注中提取
+    # 已读不回
     no_reply = platform_no_reply
 
     # 已挂：简历挂 + 笔试挂
     rejected = normal_query.filter(JobApplication.status.in_(['简历挂', '笔试挂'])).count()
 
-    # 进面：面试中 + 面试放弃（没去也算）
+    # 进面：面试中 + 面试放弃
     interview = normal_query.filter(JobApplication.status.in_(['面试中', '面试放弃'])).count()
 
     # 笔试：笔试通过 + 笔试挂
@@ -373,8 +384,8 @@ def get_stats():
     # Offer
     offer = normal_query.filter_by(status='已拿offer').count()
 
-    # 流程中 = 有投递时间 - 已挂 - 超1月 - 已读不回
-    pending = dated_query.count() - rejected - over_1month
+    # 流程中 = 有投递时间 - 已挂 - 超1月 + 招聘平台岗位数（除了挂的、已读不回的）
+    pending = dated_query.count() - rejected - over_1month + (platform_total_positions - platform_rejected - platform_no_reply)
 
     # Category stats
     categories = ['国企', '外企', '私企', '招聘平台']
@@ -382,10 +393,22 @@ def get_stats():
     for cat in categories:
         cat_query = base_query.filter_by(category=cat)
         if cat == '招聘平台':
+            cat_positions = 0
+            cat_rejected = 0
+            for p in cat_query.all():
+                pos = p.position
+                if pos:
+                    numbers = re.findall(r'\d+', pos)
+                    if numbers:
+                        cat_positions += int(numbers[0])
+                if p.notes:
+                    match_reject = re.search(r'挂\s*(\d+)\s*个', p.notes)
+                    if match_reject:
+                        cat_rejected += int(match_reject.group(1))
             cat_stats[cat] = {
                 'count': cat_query.count(),
-                'positions': platform_total_positions,
-                'reject': 0
+                'positions': cat_positions,
+                'reject': cat_rejected
             }
         else:
             cat_stats[cat] = {
@@ -402,6 +425,7 @@ def get_stats():
         'offer': offer,
         'over_1month': over_1month,
         'no_reply': no_reply,
+        'platform_rejected': platform_rejected,
         'categories': cat_stats
     })
 

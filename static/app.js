@@ -311,9 +311,16 @@ async function loadJobs() {
     }
 }
 
-async function loadStats() {
+async function loadStats(category) {
     try {
-        const response = await fetch(`${API_BASE}/api/stats`, {
+        // 根据当前页签决定筛选
+        let categoryParam = 'all';
+        if (['国企', '外企', '私企', '招聘平台'].includes(currentTab)) {
+            categoryParam = currentTab;
+        }
+
+        const url = `${API_BASE}/api/stats?category=${categoryParam}`;
+        const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         if (response.ok) {
@@ -331,7 +338,7 @@ async function loadStats() {
             document.getElementById('stat-over-1month').textContent = stats.over_1month;
             document.getElementById('stat-no-reply').textContent = stats.no_reply;
 
-            // Category stats
+            // Category stats (始终显示全部数据)
             const categories = ['国企', '外企', '私企', '招聘平台'];
             categories.forEach(cat => {
                 const catData = stats.categories[cat] || { count: 0, reject: 0 };
@@ -585,6 +592,8 @@ function switchTab(tab) {
     currentTab = tab;
     updateTableView();
     renderTable();
+    // 切换页签时重新加载统计数据
+    loadStats();
 }
 
 // ==================== Modal Functions ====================
