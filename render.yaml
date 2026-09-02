@@ -8,4 +8,4 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: DATABASE_URL
-        sync: false
+        value: postgresql://neondb_owner:npg_G9NCBeVx1lRQ@ep-late-glade-b3garm3u-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
