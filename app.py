@@ -13,9 +13,15 @@ CORS(app)
 
 app.config['SECRET_KEY'] = secrets.token_hex(32)
 
-# 数据库路径：优先使用环境变量（Render持久化磁盘），否则使用本地路径
-db_path = os.environ.get('DATABASE_PATH', os.path.join(os.path.abspath(os.path.dirname(__file__)), 'jobs.db'))
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+# 数据库配置：优先使用PostgreSQL（Supabase），否则使用SQLite本地数据库
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+    # Supabase/PostgreSQL
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+else:
+    # 本地SQLite
+    db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'jobs.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
