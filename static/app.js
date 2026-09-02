@@ -51,9 +51,6 @@ const exportModalClose = document.getElementById('export-modal-close');
 const exportMarkdownBtn = document.getElementById('export-markdown-btn');
 const exportPdfBtn = document.getElementById('export-pdf-btn');
 const exportStatus = document.getElementById('export-status');
-const syncBtn = document.getElementById('sync-btn');
-const syncStatus = document.getElementById('sync-status');
-const restoreBtn = document.getElementById('restore-btn');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -222,10 +219,6 @@ function setupEventListeners() {
 
     // Logout
     logoutBtn.addEventListener('click', logout);
-
-    // Sync & Restore
-    syncBtn.addEventListener('click', syncToGithub);
-    restoreBtn.addEventListener('click', restoreFromGithub);
 
     // Export
     exportBtn.addEventListener('click', () => {
@@ -398,24 +391,6 @@ async function loadStats(category) {
     }
 }
 
-// 自动同步到GitHub（静默，不阻塞UI）
-async function autoSync() {
-    try {
-        const response = await fetch(`${API_BASE}/api/sync`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            }
-        });
-        if (response.ok) {
-            console.log('自动同步成功');
-        }
-    } catch (error) {
-        console.error('自动同步失败:', error);
-    }
-}
-
 async function createJob(data) {
     try {
         const response = await fetch(`${API_BASE}/api/jobs`, {
@@ -430,7 +405,6 @@ async function createJob(data) {
             loadJobs();
             loadStats();
             closeModal();
-            autoSync(); // 自动同步
         }
     } catch (error) {
         console.error('创建失败:', error);
@@ -452,7 +426,6 @@ async function updateJob(id, data) {
             loadJobs();
             loadStats();
             closeModal();
-            autoSync(); // 自动同步
         }
     } catch (error) {
         console.error('更新失败:', error);
@@ -470,7 +443,6 @@ async function deleteJob(id) {
         if (response.ok) {
             loadJobs();
             loadStats();
-            autoSync(); // 自动同步
         }
     } catch (error) {
         console.error('删除失败:', error);
@@ -1042,77 +1014,6 @@ function initWeeklyChart(platformDailyRecords) {
             }
         }
     });
-}
-
-// ==================== Sync & Restore Functions ====================
-
-async function restoreFromGithub() {
-    if (!confirm('确定要从GitHub恢复数据吗？\n\n这会清空当前所有数据，并用GitHub备份文件中的数据替换。\n\n建议先同步当前数据，避免丢失。')) {
-        return;
-    }
-
-    restoreBtn.disabled = true;
-    restoreBtn.textContent = '⏳ 恢复中...';
-
-    try {
-        const response = await fetch(`${API_BASE}/api/restore`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            }
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            alert(`✅ ${data.message}\n\n备份时间: ${data.export_time}`);
-            // 刷新数据
-            loadJobs();
-            loadStats();
-        } else {
-            alert(`❌ 恢复失败: ${data.error}`);
-        }
-    } catch (error) {
-        console.error('恢复失败:', error);
-        alert('❌ 网络错误，请稍后重试');
-    } finally {
-        restoreBtn.disabled = false;
-        restoreBtn.textContent = '📥 恢复';
-    }
-}
-
-async function syncToGithub() {
-    if (!confirm('确定要将数据库同步到GitHub吗？\n\n这将把当前所有数据推送到仓库的 jobs_export.json 文件中。')) {
-        return;
-    }
-
-    syncBtn.disabled = true;
-    syncBtn.textContent = '🔄 同步中...';
-
-    try {
-        const response = await fetch(`${API_BASE}/api/sync`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            }
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            alert(`✅ ${data.message}\n\n提交: ${data.commit}\n查看: ${data.url}`);
-        } else {
-            alert(`❌ 同步失败: ${data.error}`);
-        }
-    } catch (error) {
-        console.error('同步失败:', error);
-        alert('❌ 网络错误，请稍后重试');
-    } finally {
-        syncBtn.disabled = false;
-        syncBtn.textContent = '🔄 同步';
-    }
 }
 
 // ==================== Export Functions ====================

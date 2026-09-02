@@ -9,9 +9,3 @@ services:
         value: 3.11.0
       - key: DATABASE_URL
         sync: false
-      - key: GITHUB_REPO
-        value: yzuxqz/Job
-      - key: GITHUB_BRANCH
-        value: main
-      - key: GITHUB_TOKEN
-        sync: false
