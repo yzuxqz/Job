@@ -700,6 +700,12 @@ function editPlatformJob(id) {
 
 function handleSubmit(e) {
     e.preventDefault();
+
+    // 防止重复提交
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
+
     const data = {
         company: document.getElementById('form-company').value,
         position: document.getElementById('form-position').value,
@@ -712,15 +718,27 @@ function handleSubmit(e) {
         link: document.getElementById('form-link').value,
         notes: document.getElementById('form-notes').value,
     };
+
+    const callback = () => {
+        submitBtn.disabled = false;
+    };
+
     if (editingId) {
         updateJob(editingId, data);
+        callback();
     } else {
-        createJob(data);
+        createJob(data).finally(callback);
     }
 }
 
 function handlePlatformSubmit(e) {
     e.preventDefault();
+
+    // 防止重复提交
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
+
     const data = {
         company: document.getElementById('platform-form-company').value,
         position: document.getElementById('platform-form-position').value,
@@ -735,11 +753,17 @@ function handlePlatformSubmit(e) {
         link: document.getElementById('platform-form-link').value,
         notes: document.getElementById('platform-form-notes').value,
     };
+
+    const callback = () => {
+        submitBtn.disabled = false;
+    };
+
     if (editingId) {
         updateJob(editingId, data);
         closePlatformModal();
+        callback();
     } else {
-        createJob(data);
+        createJob(data).finally(callback);
         closePlatformModal();
     }
 }
